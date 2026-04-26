@@ -136,8 +136,17 @@ local function spawnvehicle(data)
             TriggerEvent("vehiclekeys:client:SetOwner", plate)
         end
 
-        -- Agora que o carro real já está pronto e no lugar, iniciamos a animação nele
-        DoScreenFadeIn(100)
+        -- Ligar o carro e faróis (Farol alto para impacto visual)
+        SetVehicleEngineOn(vehEntity, true, true, false)
+        SetVehicleLights(vehEntity, 2) -- Ligar faróis
+        SetVehicleFullbeam(vehEntity, true) -- Farol alto para o cinematic ficar mais bonito
+        
+        -- Colocar o jogador dentro do carro IMEDIATAMENTE (durante o blackout)
+        if Config.SpawnInVehicle then
+            TaskWarpPedIntoVehicle(cache.ped, vehEntity, -1)
+        end
+
+        -- Criar a câmera cinematográfica (ela mesma cuidará do primeiro FadeIn)
         utils.createPreviewCam(vehEntity, true)
 
         -- Barra de progresso sincronizada com os 3 takes (7 segundos total)
@@ -150,10 +159,9 @@ local function spawnvehicle(data)
             disable = { move = true, car = true, combat = true, mouse = true }
         })
 
-        -- Se configurado para nascer dentro, fazemos o warp agora
-        if Config.SpawnInVehicle then
-            TaskWarpPedIntoVehicle(cache.ped, vehEntity, -1)
-        end
+        -- Garantir motor e luzes ligadas para o controle do player
+        SetVehicleEngineOn(vehEntity, true, true, false)
+        SetVehicleLights(vehEntity, 2)
 
         -- Finaliza a câmera e volta para o jogador
         utils.destroyPreviewCam(vehEntity, Config.SpawnInVehicle)

@@ -70,61 +70,68 @@ function utils.createPreviewCam(vehicle, isWithdraw)
         local camF = GetGameplayCamFov()
 
         if isWithdraw then
-            -- SEQUÊNCIA FORZA STYLE v6 (LADO INVERTIDO + FOV UP + DRIFT OUT)
+            -- SEQUÊNCIA FORZA STYLE v8 (ULTRA ESTÁVEL)
             Citizen.CreateThread(function()
+                -- Limpeza de segurança: Garante que não haja câmeras órfãs
+                if utils.previewCam and DoesCamExist(utils.previewCam) then
+                    DestroyCam(utils.previewCam, false)
+                end
+
                 local mainCam = CreateCam("DEFAULT_SCRIPTED_CAMERA", false)
                 utils.previewCam = mainCam
                 
-                -- TAKE 1: DIAGONAL FRONTAL DIREITA (FOCO OUTRO LADO)
+                -- TAKE 1: DIAGONAL FRONTAL DIREITA
+                if not DoesEntityExist(vehicle) then return end
                 local startPos = GetOffsetFromEntityInWorldCoords(vehicle, 1.8, 3.5, 0.4)
                 local endPos = GetOffsetFromEntityInWorldCoords(vehicle, 1.6, 3.6, 0.45)
                 
                 SetCamCoord(mainCam, startPos.x, startPos.y, startPos.z)
-                PointCamAtCoord(mainCam, vehpos.x + 0.5, vehpos.y + 0.8, vehpos.z + 0.3)
+                PointCamAtEntity(mainCam, vehicle, 0.5, 0.8, 0.3, true)
                 SetCamFov(mainCam, camF - 18)
                 SetCamActive(mainCam, true)
                 RenderScriptCams(true, false, 0, false, false)
+                
+                -- Agora que a câmera está ativa e no lugar, abrimos a imagem
                 DoScreenFadeIn(500)
 
                 local driftCam1 = CreateCam("DEFAULT_SCRIPTED_CAMERA", false)
                 SetCamCoord(driftCam1, endPos.x, endPos.y, endPos.z)
-                PointCamAtCoord(driftCam1, vehpos.x + 0.5, vehpos.y + 0.8, vehpos.z + 0.3)
+                PointCamAtEntity(driftCam1, vehicle, 0.5, 0.8, 0.3, true)
                 SetCamFov(driftCam1, camF - 18)
                 SetCamActiveWithInterp(driftCam1, mainCam, 2000, 1, 1)
 
                 Wait(1800)
                 DoScreenFadeOut(300)
                 Wait(350)
-                DestroyCam(mainCam, false)
+                if DoesCamExist(mainCam) then DestroyCam(mainCam, false) end
                 mainCam = driftCam1
 
-                -- TAKE 2: HERO SHOT COM DRIFT (GRADE -> RODA -> LATERAL)
+                -- TAKE 2: HERO SHOT (GRADE -> RODA -> LATERAL)
                 if not DoesEntityExist(vehicle) then return end
-                -- Começa mais fechado na frente da grade/roda
-                local startPos = GetOffsetFromEntityInWorldCoords(vehicle, -1.0, 4.0, -0.4)
-                -- Termina no equilíbrio perfeito que você gostou
-                local endPos = GetOffsetFromEntityInWorldCoords(vehicle, -2.0, 3.2, -0.45)
+                -- StartPos: Perto da grade/roda
+                local sideStart = GetOffsetFromEntityInWorldCoords(vehicle, -1.0, 4.0, -0.4)
+                -- EndPos: Mais afastado para dar imponência
+                local sideEnd = GetOffsetFromEntityInWorldCoords(vehicle, -2.5, 3.2, -0.45)
                 
-                SetCamCoord(mainCam, startPos.x, startPos.y, startPos.z)
-                -- Foco lá na traseira para manter a diagonal ao longo do carro
-                PointCamAtCoord(mainCam, vehpos.x - 1.5, vehpos.y - 3.5, vehpos.z + 0.8)
+                SetCamCoord(mainCam, sideStart.x, sideStart.y, sideStart.z)
+                -- Mira mais centralizada no carro (-0.5) para ele não sumir da tela
+                PointCamAtEntity(mainCam, vehicle, -0.5, -3.0, 0.8, true)
                 SetCamFov(mainCam, camF - 18)
                 SetCamActive(mainCam, true)
-                RenderScriptCams(true, false, 0, false, false)
-                DoScreenFadeIn(500)
+                
+                DoScreenFadeIn(400)
+                Wait(400)
 
                 local driftCam2 = CreateCam("DEFAULT_SCRIPTED_CAMERA", false)
-                SetCamCoord(driftCam2, endPos.x, endPos.y, endPos.z)
-                PointCamAtCoord(driftCam2, vehpos.x - 1.5, vehpos.y - 3.5, vehpos.z + 0.8)
+                SetCamCoord(driftCam2, sideEnd.x, sideEnd.y, sideEnd.z)
+                PointCamAtEntity(driftCam2, vehicle, -0.5, -3.0, 0.8, true)
                 SetCamFov(driftCam2, camF - 18)
-                SetCamActiveWithInterp(driftCam2, mainCam, 3000, 1, 1)
-                RenderScriptCams(true, false, 0, false, false)
-                DoScreenFadeIn(500)
+                SetCamActiveWithInterp(driftCam2, mainCam, 2600, 1, 1)
 
-                Wait(2800)
+                Wait(2400)
                 DoScreenFadeOut(300)
                 Wait(350)
-                DestroyCam(mainCam, false)
+                if DoesCamExist(mainCam) then DestroyCam(mainCam, false) end
                 mainCam = driftCam2
 
                 -- TAKE 3: TRASEIRA INVERTIDA (DE DENTRO P/ FORA)
@@ -133,13 +140,14 @@ function utils.createPreviewCam(vehicle, isWithdraw)
                 local rearEnd = GetOffsetFromEntityInWorldCoords(vehicle, -2.2, -4.2, 0.7)
                 
                 SetCamCoord(mainCam, rearStart.x, rearStart.y, rearStart.z)
-                PointCamAtCoord(mainCam, vehpos.x - 0.5, vehpos.y - 1.0, vehpos.z + 0.3)
+                PointCamAtEntity(mainCam, vehicle, -0.5, -1.0, 0.3, true)
                 SetCamFov(mainCam, camF - 15)
+                SetCamActive(mainCam, true)
                 DoScreenFadeIn(500)
 
                 local driftCam3 = CreateCam("DEFAULT_SCRIPTED_CAMERA", false)
                 SetCamCoord(driftCam3, rearEnd.x, rearEnd.y, rearEnd.z)
-                PointCamAtCoord(driftCam3, vehpos.x - 0.5, vehpos.y - 1.0, vehpos.z + 0.3)
+                PointCamAtEntity(driftCam3, vehicle, -0.5, -1.0, 0.3, true)
                 SetCamFov(driftCam3, camF - 15)
                 SetCamActiveWithInterp(driftCam3, mainCam, 2000, 1, 1)
 
@@ -176,13 +184,13 @@ end
 function utils.destroyPreviewCam(vehicle, enterVehicle)
     if utils.previewCam then
         if enterVehicle then
-            DoScreenFadeOut(400)
-            Wait(500)
+            DoScreenFadeOut(0)
+            Wait(100)
             RenderScriptCams(false, false, 0, false, false)
             DestroyCam(utils.previewCam, false)
             utils.previewCam = nil
-            Wait(200)
-            DoScreenFadeIn(400)
+            Wait(100)
+            DoScreenFadeIn(100)
         else
             RenderScriptCams(false, true, 800, true, true)
             Citizen.CreateThread(function()
