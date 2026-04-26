@@ -140,14 +140,14 @@ local function spawnvehicle(data)
         DoScreenFadeIn(100)
         utils.createPreviewCam(vehEntity, true)
 
-        -- Barra de progresso sincronizada com a órbita (3 segundos)
+        -- Barra de progresso sincronizada com os 3 takes (7 segundos total)
         lib.progressCircle({
-            duration = 3000,
+            duration = 7000,
             position = 'bottom',
             label = 'Retirando veículo...',
             useWhileDead = false,
             canCancel = false,
-            disable = { move = true, car = true, combat = true, mouse = false }
+            disable = { move = true, car = true, combat = true, mouse = true }
         })
 
         -- Se configurado para nascer dentro, fazemos o warp agora
