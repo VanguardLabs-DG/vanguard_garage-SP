@@ -78,7 +78,7 @@ end)
 
 RegisterNetEvent("rhd_garage:server:updateState", function ( data )
     if GetInvokingResource() then return end
-    fw.uvs(data.plate, data.state, data.garage)
+    fw.uvs(data.plate, data.state, data.garage, data.engine, data.body)
 end)
 
 RegisterNetEvent("rhd_garage:server:destroyVehicle", function(plate)

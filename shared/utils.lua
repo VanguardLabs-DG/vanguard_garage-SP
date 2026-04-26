@@ -62,37 +62,86 @@ end
 
 utils.previewCam = nil
 
-function utils.createPreviewCam(vehicle)
+function utils.createPreviewCam(vehicle, isWithdraw)
     if not DoesEntityExist(vehicle) then return end
 
     if not Config.DisableVehicleCamera then
-        local cam = CreateCam("DEFAULT_SCRIPTED_CAMERA", true)
-        utils.previewCam = cam
-        RenderScriptCams(true, true, 1500,  true,  true)
-
         local vehpos = GetEntityCoords(vehicle)
-        local pos = GetOffsetFromEntityInWorldCoords(vehicle, 4.0, 7.0, 1.0)
         local camF = GetGameplayCamFov()
 
-        SetCamCoord(cam, pos.x, pos.y, pos.z + 1.2)
-        PointCamAtCoord(cam, vehpos.x, vehpos.y, vehpos.z + 0.2)
-        SetCamFov(cam, camF - 20)
+        if isWithdraw then
+            -- Órbita Super Estilosa (Arco Amplo)
+            local startPos = GetOffsetFromEntityInWorldCoords(vehicle, -4.0, -5.0, 1.8)
+            local midPos = GetOffsetFromEntityInWorldCoords(vehicle, 0.0, -7.0, 2.2)
+            local endPos = GetOffsetFromEntityInWorldCoords(vehicle, 4.0, -5.0, 1.8)
+
+            if not utils.previewCam then utils.previewCam = CreateCam("DEFAULT_SCRIPTED_CAMERA", false) end
+            
+            SetCamCoord(utils.previewCam, startPos.x, startPos.y, startPos.z)
+            PointCamAtCoord(utils.previewCam, vehpos.x, vehpos.y, vehpos.z + 0.5)
+            SetCamActive(utils.previewCam, true)
+            RenderScriptCams(true, false, 0, false, false)
+
+            local nextCam = CreateCam("DEFAULT_SCRIPTED_CAMERA", false)
+            SetCamCoord(nextCam, endPos.x, endPos.y, endPos.z)
+            PointCamAtCoord(nextCam, vehpos.x, vehpos.y, vehpos.z + 0.5)
+            SetCamFov(nextCam, camF - 15)
+            
+            SetCamActiveWithInterp(nextCam, utils.previewCam, 3500, 1, 1)
+            
+            Citizen.CreateThread(function()
+                Wait(3550)
+                if DoesCamExist(utils.previewCam) and utils.previewCam ~= nextCam then DestroyCam(utils.previewCam, false) end
+                utils.previewCam = nextCam
+            end)
+        else
+            -- Entrada Cinematográfica (Visão de cima para lateral)
+            local endPos = GetOffsetFromEntityInWorldCoords(vehicle, 3.5, 5.0, 1.2)
+            local startPos = GetOffsetFromEntityInWorldCoords(vehicle, 4.0, 6.0, 3.0)
+
+            if not utils.previewCam then utils.previewCam = CreateCam("DEFAULT_SCRIPTED_CAMERA", false) end
+
+            SetCamCoord(utils.previewCam, startPos.x, startPos.y, startPos.z)
+            PointCamAtCoord(utils.previewCam, vehpos.x, vehpos.y, vehpos.z)
+            SetCamActive(utils.previewCam, true)
+            RenderScriptCams(true, false, 0, false, false)
+
+            Wait(50)
+            local tempCam = CreateCam("DEFAULT_SCRIPTED_CAMERA", false)
+            SetCamCoord(tempCam, endPos.x, endPos.y, endPos.z)
+            PointCamAtCoord(tempCam, vehpos.x, vehpos.y, vehpos.z + 0.2)
+            SetCamFov(tempCam, camF - 10)
+            SetCamActiveWithInterp(tempCam, utils.previewCam, 1200, 1, 1)
+            
+            Citizen.CreateThread(function()
+                Wait(1250)
+                if DoesCamExist(utils.previewCam) and utils.previewCam ~= tempCam then DestroyCam(utils.previewCam, false) end
+                utils.previewCam = tempCam
+            end)
+        end
     end
 end
 
 function utils.destroyPreviewCam(vehicle, enterVehicle)
-    if not DoesEntityExist(vehicle) then return end
-
     if utils.previewCam then
         if enterVehicle then
-            DoScreenFadeOut(500)
-            Wait(1000)
-            DoScreenFadeIn(500)
+            DoScreenFadeOut(400)
+            Wait(500)
+            RenderScriptCams(false, false, 0, false, false)
+            DestroyCam(utils.previewCam, false)
+            utils.previewCam = nil
+            Wait(200)
+            DoScreenFadeIn(400)
+        else
+            RenderScriptCams(false, true, 800, true, true)
+            Citizen.CreateThread(function()
+                Wait(850)
+                if utils.previewCam then
+                    DestroyCam(utils.previewCam, false)
+                    utils.previewCam = nil
+                end
+            end)
         end
-
-        RenderScriptCams(false, true, 1500, false, false)
-        DestroyCam(utils.previewCam, true)
-        utils.previewCam = nil
     end
 end
 

@@ -1,14 +1,20 @@
 local VehicleShow = nil
 local Deformation = require 'modules.deformation'
 
-local function destroyPreview()
+local function destroyPreview(keepCam)
     if VehicleShow and DoesEntityExist(VehicleShow) then
-        utils.destroyPreviewCam(VehicleShow)
-        DeleteVehicle(VehicleShow)
+        if not keepCam then
+            utils.destroyPreviewCam(VehicleShow)
+        end
+        local entity = VehicleShow
         VehicleShow = nil
-    end
-    while DoesEntityExist(VehicleShow) do
-        Wait(100)
+        DeleteVehicle(entity)
+        
+        local timeout = 0
+        while DoesEntityExist(entity) and timeout < 50 do
+            Wait(10)
+            timeout = timeout + 1
+        end
     end
     return true
 end
@@ -43,10 +49,12 @@ local isSpawning = false
 
 --- Spawn Vehicle
 ---@param data GarageVehicleData
+--- Spawn Vehicle
+---@param data GarageVehicleData
 local function spawnvehicle(data)
     LocalPlayer.state:set('garageBusy', true)
     if isSpawning then
-        utils.notify('Aguarde enquanto o veículo está sendo spawnado.', 'error')
+        utils.notify('Aguarde enquanto o veículo está sendo retirado.', 'error')
         return
     end
 
@@ -68,10 +76,6 @@ local function spawnvehicle(data)
             end
         end
 
-        if Config.InDevelopment then
-            print(json.encode(data))
-        end
-        
         local vehEntity
         utils.createPlyVeh(vehData.model, data.coords, function(veh) vehEntity = veh end, true, vehData.mods)
         
@@ -84,29 +88,37 @@ local function spawnvehicle(data)
             TriggerEvent("vehiclekeys:client:SetOwner", data.plate)
         end
 
-        SetVehicleEngineHealth(vehEntity, (vehData.engine or 1000) + 0.0)
-        SetVehicleBodyHealth(vehEntity, (vehData.body or 1000) + 0.0)
-        utils.setFuel(vehEntity, vehData.fuel or 100)
-        
-        if vehData.deformation or data.deformation then
-            Deformation.set(vehEntity, vehData.deformation or data.deformation)
+        local engineHealth = vehData.engine or 1000
+        local bodyHealth = vehData.body or 1000
+        local deformationData = vehData.deformation or data.deformation
+
+        -- Regra de Conserto Automático ao pagar Franquia de Seguro
+        local garageData = GarageZone[data.garage]
+        if Config.RepairOnInsurance and garageData and garageData.impound and (engineHealth <= 0 and bodyHealth <= 0) then
+            engineHealth = 1000
+            bodyHealth = 1000
+            deformationData = nil
         end
 
-        while not vehEntity do
-            Wait(100)
+        SetVehicleEngineHealth(vehEntity, (engineHealth) + 0.0)
+        SetVehicleBodyHealth(vehEntity, (bodyHealth) + 0.0)
+        utils.setFuel(vehEntity, vehData.fuel or 100)
+        
+        if deformationData then
+            Deformation.set(vehEntity, deformationData)
         end
+
+        while not vehEntity do Wait(10) end
 
         Entity(vehEntity).state:set('vehlabel', vehData.vehicle_name or data.vehicle_name)
         
         TriggerServerEvent("rhd_garage:server:updateState", {
             plate = vehData.plate or data.plate,
             state = 0,
-            garage = vehData.garage or data.garage
+            garage = vehData.garage or data.garage,
+            engine = engineHealth,
+            body = bodyHealth
         })
-
-        if Config.SpawnInVehicle then
-            TaskWarpPedIntoVehicle(cache.ped, vehEntity, -1)
-        end
 
         if GetResourceState('mri_Qcarkeys') == 'started' and Config.GiveKeys.onspawn then
             local plate = vehData.plate or data.plate
@@ -124,20 +136,27 @@ local function spawnvehicle(data)
             TriggerEvent("vehiclekeys:client:SetOwner", plate)
         end
 
+        -- Agora que o carro real já está pronto e no lugar, iniciamos a animação nele
+        DoScreenFadeIn(100)
+        utils.createPreviewCam(vehEntity, true)
+
+        -- Barra de progresso sincronizada com a órbita (3 segundos)
         lib.progressCircle({
             duration = 3000,
             position = 'bottom',
-            label = 'Estacionando veículo...',
+            label = 'Retirando veículo...',
             useWhileDead = false,
             canCancel = false,
-            disable = {
-                move = false,
-                car = false,
-                combat = true,
-                sprint = true,
-            }
+            disable = { move = true, car = true, combat = true, mouse = false }
         })
 
+        -- Se configurado para nascer dentro, fazemos o warp agora
+        if Config.SpawnInVehicle then
+            TaskWarpPedIntoVehicle(cache.ped, vehEntity, -1)
+        end
+
+        -- Finaliza a câmera e volta para o jogador
+        utils.destroyPreviewCam(vehEntity, Config.SpawnInVehicle)
     end)
 
     isSpawning = false
@@ -193,7 +212,8 @@ local function actionMenu(data)
                                     description = locale('context.insurance.pay_methode_cash_desc'),
                                     iconAnimation = Config.IconAnimation,
                                     onSelect = function()
-                                        destroyPreview()
+                                        DoScreenFadeOut(0)
+                                        destroyPreview(true)
                                         if fw.gm('cash') < data.depotprice then return utils.notify(locale('notify.error.not_enough_cash'), 'error') end
                                         local success = lib.callback.await('rhd_garage:cb_server:removeMoney', false, 'cash', data.depotprice)
                                         if success then
@@ -208,7 +228,8 @@ local function actionMenu(data)
                                     description = locale('context.insurance.pay_methode_bank_desc'),
                                     iconAnimation = Config.IconAnimation,
                                     onSelect = function()
-                                        destroyPreview()
+                                        DoScreenFadeOut(0)
+                                        destroyPreview(true)
                                         if fw.gm('bank') < data.depotprice then return utils.notify(locale('notify.error.not_enough_bank'), 'error') end
                                         local success = lib.callback.await('rhd_garage:cb_server:removeMoney', false, 'bank', data.depotprice)
                                         if success then
@@ -221,10 +242,8 @@ local function actionMenu(data)
                         })
                         return
                     end
-                    local success = destroyPreview()
-                    while not success do
-                        Wait(100)
-                    end
+                    DoScreenFadeOut(0)
+                    destroyPreview(true)
                     spawnvehicle(data)
                 end
             },
@@ -233,7 +252,7 @@ local function actionMenu(data)
     }
     
     if not data.impound and data.plate then
-        if Config.TransferVehicle.enable then
+        if Config.TransferVehicle.enable and not Config.VehiclesInAllGarages then
             actionData.options[#actionData.options + 1] = {
                 title = locale("context.garage.transferveh_title"),
                 icon = "exchange-alt",
@@ -266,7 +285,7 @@ local function actionMenu(data)
             }
         end
         
-        if Config.SwapGarage.enable and swapEnabled(data.garage) then
+        if Config.SwapGarage.enable and swapEnabled(data.garage) and not Config.VehiclesInAllGarages then
             actionData.options[#actionData.options + 1] = {
                 title = locale('context.garage.swapgarage'),
                 icon = "retweet",
@@ -318,7 +337,7 @@ local function actionMenu(data)
             icon = 'pencil',
             iconAnimation = Config.IconAnimation,
             metadata = {
-                ["Preço"] = 'R$ ' .. lib.math.groupdigits(Config.SwapGarage.price, '.')
+                ["Preço"] = 'R$ ' .. lib.math.groupdigits(Config.changeNamePrice, '.')
             },
             onSelect = function()
                 destroyPreview()
@@ -512,18 +531,37 @@ local function openMenu(data)
         if lib.table.contains(data.type, vehicleType) then
             local icon = Config.Icons[vehicleClass] or 'car'
             local ImpoundPrice = dp > 0 and dp or Config.ImpoundPrice[vehicleClass]
-            local impound
+            
+            -- Garantir que engine e body sejam números
+            local vEngine = tonumber(engine) or 1000
+            local vBody = tonumber(body) or 1000
+            local isTotalLoss = (vEngine <= 0 and vBody <= 0)
+
+            if data.impound and isTotalLoss then
+                local marketPrice = tonumber(vd.marketPrice) or 0
+                if marketPrice > 0 then
+                    ImpoundPrice = math.floor(marketPrice * 0.25)
+                end
+            end
+
+            local impound = false
             if gState == 0 then
-                if (Config.VehiclesInAllGarages and vehFunc.govbp(plate)) or (not Config.VehiclesInAllGarages and vehFunc.tvbp(plate, data.garage)) then
+                -- Se for Pátio e Perda Total, OBRIGA a pagar a Franquia
+                if data.impound and isTotalLoss then
+                    impound = true
+                    description = 'FRANQUIA SEGURO (25%): R$ ' .. lib.math.groupdigits(ImpoundPrice, '.')
+                
+                -- Se o carro estiver na rua (inteiro)
+                elseif (Config.VehiclesInAllGarages and vehFunc.govbp(plate)) or (not Config.VehiclesInAllGarages and vehFunc.tvbp(plate, data.garage)) then
                     disabled = not Config.LocateVehicleOutGarage
                     description = 'STATUS: ' .. locale('status.out')
                 elseif Config.VehiclesInAllGarages and vehFunc.tvbp(plate, nil) then
                     disabled = not Config.LocateVehicleOutGarage
                     description = 'STATUS: ' .. locale('status.out')
+                
+                -- Se o carro não estiver na rua (Impound comum)
                 else
-                    if Config.VehiclesInAllGarages then
-                        impound = true
-                    end
+                    impound = true
                     description = locale('garage.impound_price', ImpoundPrice)
                 end
             end

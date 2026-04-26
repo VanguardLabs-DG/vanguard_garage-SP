@@ -11,6 +11,7 @@ Config.changeNamePrice = 15000 --- price for changing the name of the vehicle in
 Config.SpawnInVehicle = false  --- change this to true if you want the player to immediately enter the vehicle when the vehicle is taken out of the garage
 Config.VehiclesInAllGarages = true --- Opção ZAP: deixe true para todos os veículos do player aparecerem em todas as garagens
 Config.DisableVehicleCamera = false --- Desativa a movimentação de câmera ao puxar o veículo
+Config.RepairOnInsurance = true -- Se true, o veículo virá 100% consertado ao pagar a franquia de 25% no Pátio. Se false, virá quebrado.
 Config.LocateVehicleOutGarage = true --- Opção ZAP: encontrar veículos fora da garagem
 
 --- Additional: (Requires ox_target or qb-target resource)

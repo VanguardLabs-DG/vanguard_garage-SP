@@ -208,8 +208,21 @@ if isServer then
     ---@param state number
     ---@param garage string
     ---@return boolean
-    function fw.uvs(plate, state, garage)
-        local Update = MySQL.update.await("UPDATE player_vehicles SET state = ?, garage = ? WHERE plate = ? OR fakeplate = ?", {state, garage, plate, plate})
+    function fw.uvs(plate, state, garage, engine, body)
+        local query = "UPDATE player_vehicles SET state = ?, garage = ?"
+        local params = {state, garage}
+        
+        if engine and body then
+            query = query .. ", engine = ?, body = ?"
+            params[#params+1] = engine
+            params[#params+1] = body
+        end
+        
+        query = query .. " WHERE plate = ? OR fakeplate = ?"
+        params[#params+1] = plate
+        params[#params+1] = plate
+        
+        local Update = MySQL.update.await(query, params)
         return Update > 0
     end
 
@@ -417,6 +430,9 @@ if isServer then
                 local depotprice = data.depotprice
                 local fakeplate = data.fakeplate
 
+                local sharedData = QBCore.Shared.Vehicles[model]
+                local marketPrice = sharedData and sharedData.price or 0
+
                 vehicles[#vehicles+1] = {
                     vehicle = mods,
                     vehicle_name = data.vehicle_name,
@@ -427,8 +443,9 @@ if isServer then
                     model = model,
                     plate = plate,
                     fakeplate = fakeplate,
-                    depotprice = depotprice,
-                    deformation = deformation
+                    depotprice = data.depotprice,
+                    deformation = deformation,
+                    marketPrice = marketPrice
                 }
 
                 if filter.shared then
