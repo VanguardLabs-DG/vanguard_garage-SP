@@ -796,10 +796,20 @@ exports('storeVehicle', storeVeh)
 RegisterNetEvent('rhd_garage:client:takeOutFromShowroom', function(plate, coords)
     local vehData = lib.callback.await('rhd_garage:cb_server:getvehiclePropByPlate', false, plate)
     if vehData then
+        -- Correção para Garagem Nível 2: Se a rotação for diagonal (ex: 335º), 
+        -- arredonda para o ângulo reto mais próximo para evitar spawn bugado no mundo.
+        local cleanCoords = coords
+        if coords and coords.w then
+            local h = coords.w
+            -- Arredonda para 0, 90, 180, 270 ou 360
+            local roundedHeading = math.floor((h + 45) / 90) * 90
+            cleanCoords = vec4(coords.x, coords.y, coords.z, roundedHeading + 0.0)
+        end
+
         spawnvehicle({
             model = vehData.model,
             plate = plate,
-            coords = coords,
+            coords = cleanCoords,
             garage = vehData.garage
         })
     end

@@ -90,14 +90,14 @@ Config.Showrooms = {
         AllowOnlyInPrivateGarages = false,
     },
     level1 = { -- 2 Car Garage
-        EntranceCoords = vec4(173.2903, -1003.6, -99.65707, 0.0),
+        EntranceCoords = vec4(179.25, -1001.38, -99.0, 183.64),
         ParkingSlots = {
             { Coords = vec4(171.2903, -1003.6, -99.65707, 0.0) }, -- Vaga 1 (Esquerda)
             { Coords = vec4(175.2903, -1003.6, -99.65707, 0.0) }, -- Vaga 2 (Direita)
         }
     },
     level2 = { -- 6 Car Garage
-        EntranceCoords = vec4(197.8153, -1002.293, -99.65749, 0.0),
+        EntranceCoords = vec4(207.160, -999.410, -99.65749, 0.0),
         ParkingSlots = {
             { Coords = vec4(193.38, -1004.22, -99.42, 335.76) },
             { Coords = vec4(195.95, -1004.22, -99.42, 335.76) },
