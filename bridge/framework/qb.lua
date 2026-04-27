@@ -239,6 +239,11 @@ if isServer then
             params[#params+1] = body
         end
         
+        if state == 0 then
+            query = query .. ", last_out = ?"
+            params[#params+1] = os.time()
+        end
+        
         query = query .. " WHERE plate = ? OR fakeplate = ?"
         params[#params+1] = plate
         params[#params+1] = plate
@@ -411,7 +416,7 @@ if isServer then
         local format, value
         if filter and filter.impound then
             format = [[
-                SELECT vehicle, vehicle_name, mods, state, depotprice, plate, fakeplate, fuel, engine, body, deformation
+                SELECT vehicle, vehicle_name, mods, state, depotprice, plate, fakeplate, fuel, engine, body, deformation, last_out
                 FROM player_vehicles WHERE citizenid = ? AND (state = 0 OR state = 3)
             ]]
             value = {Identifier}
@@ -461,6 +466,7 @@ if isServer then
                     engine = data.engine,
                     body = data.body,
                     state = state,
+                    last_out = data.last_out or 0,
                     model = model,
                     plate = plate,
                     fakeplate = fakeplate,

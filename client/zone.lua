@@ -70,10 +70,10 @@ function gzf.refresh ()
                         label = "Abrir Garagem",
                         icon = "fas fa-warehouse",
                         action = function ()
+                            print("^3[rhd_garage:DEBUG] [TARGET] Clique detectado no Ped da garagem: " .. tostring(args.garage) .. "^7")
                             args.ignoreDist = true
                             exports.rhd_garage:openMenu(args)
                         end,
-                        distance = 1.5
                     }
                 })
             end
@@ -93,9 +93,11 @@ function gzf.refresh ()
                     end
 
                     if cache.vehicle then
+                        print("^3[rhd_garage:DEBUG] [KEY] Apertou E dentro do veículo para GUARDAR na garagem: " .. tostring(k) .. "^7")
                         return exports.rhd_garage:storeVehicle(args)
                     end
 
+                    print("^3[rhd_garage:DEBUG] [KEY] Apertou E a pé para ABRIR a garagem: " .. tostring(k) .. "^7")
                     exports.rhd_garage:openMenu(args)
                 end
             end

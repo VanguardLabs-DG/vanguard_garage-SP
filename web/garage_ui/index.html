@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RHD Garage - Premium UI</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+</head>
+<body>
+    <div id="app" style="display: none;">
+        <div class="overlay"></div>
+        <div class="main-container animate__animated animate__fadeIn">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <header class="sidebar-header">
+                    <div class="garage-info">
+                        <h1 id="garage-name">Garagem Central</h1>
+                        <span id="vehicle-count">Total de 0 veículos</span>
+                    </div>
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="search-input" placeholder="Pesquisar veículo...">
+                    </div>
+                </header>
+                
+                <div class="vehicle-list" id="vehicle-list">
+                    <!-- Cards de veículos serão inseridos aqui -->
+                </div>
+            </aside>
+
+            <!-- Detalhes do Veículo -->
+            <main class="details-panel">
+                <div class="close-btn" onclick="closeUI()">
+                    <i class="fas fa-times"></i>
+                </div>
+
+                <div id="no-selection" class="empty-state">
+                    <i class="fas fa-car-side pulse"></i>
+                    <p>Selecione um veículo para ver os detalhes</p>
+                </div>
+
+                <div id="vehicle-content" class="content-wrapper" style="display: none;">
+                    <div class="vehicle-header">
+                        <h2 id="display-name">NOME DO VEÍCULO</h2>
+                        <span id="display-plate" class="plate-badge">ABC-1234</span>
+                    </div>
+
+                    <div class="vehicle-preview">
+                        <img id="main-vehicle-image" src="" alt="Vehicle Preview">
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-info">
+                                <i class="fas fa-gas-pump"></i>
+                                <span>Combustível</span>
+                                <span id="fuel-text" class="stat-value">100%</span>
+                            </div>
+                            <div class="progress-bar"><div id="fuel-bar" style="width: 100%;"></div></div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-info">
+                                <i class="fas fa-engine"></i>
+                                <span>Motor</span>
+                                <span id="engine-text" class="stat-value">100%</span>
+                            </div>
+                            <div class="progress-bar"><div id="engine-bar" style="width: 100%;"></div></div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-info">
+                                <i class="fas fa-tools"></i>
+                                <span>Lataria</span>
+                                <span id="body-text" class="stat-value">100%</span>
+                            </div>
+                            <div class="progress-bar"><div id="body-bar" style="width: 100%;"></div></div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-info">
+                                <i class="fas fa-info-circle"></i>
+                                <span>Status</span>
+                                <span id="status-text" class="stat-value">Na Garagem</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="actions">
+                        <button id="take-out-btn" class="btn-primary">
+                            <i class="fas fa-sign-out-alt"></i> RETIRAR VEÍCULO
+                        </button>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="script.js"></script>
+</body>
+</html>

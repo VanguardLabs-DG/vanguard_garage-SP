@@ -310,7 +310,8 @@ function utils.createPlyVeh ( model, coords, cb, network, props )
     lib.requestModel(model, 150000)
     local netid = lib.callback.await("rhd_garage:server:spawnVehicle", false, model, coords, props)
     if not netid then 
-        return lib.notify({description = "Você deve esperar um pouco para fazer essa ação novamente", type = "error", duration = 10000})    
+        if cb then cb(nil) end
+        return 
     end
     local veh = NetworkGetEntityFromNetworkId(netid)
     SetVehicleHasBeenOwnedByPlayer(veh, true)

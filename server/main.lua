@@ -39,6 +39,31 @@ lib.callback.register('rhd_garage:server:getGarageLevel', function(src)
     return getPlayerGarageLevel(src)
 end)
 
+lib.callback.register('rhd_garage:server:getCurrentTime', function(src)
+    return os.time()
+end)
+
+lib.callback.register('rhd_garage:server:checkRecovery', function(src, plate)
+    local vehData = MySQL.single.await('SELECT state, last_out FROM player_vehicles WHERE plate = ? OR fakeplate = ?', {plate, plate})
+    if not vehData then return { allowed = true } end
+
+    if vehData.state == 0 or vehData.state == 3 then
+        local currentTime = os.time()
+        local lastOut = vehData.last_out or 0
+        local waitTime = (vehData.state == 0) and Config.RecoveryCooldown or Config.DestroyedCooldown
+        
+        if (currentTime - lastOut) < waitTime then
+            return { 
+                allowed = false, 
+                reason = "cooldown", 
+                remaining = waitTime - (currentTime - lastOut) 
+            }
+        end
+    end
+
+    return { allowed = true }
+end)
+
 --- callback
 lib.callback.register('rhd_garage:cb_server:removeMoney', function(src, type, amount)
     return fw.rm(src, type, amount)
@@ -64,10 +89,15 @@ lib.callback.register('rhd_garage:cb_server:getvehiclePropByPlate', function (_,
 end)
 
 lib.callback.register('rhd_garage:cb_server:getVehicleList', function(src, garage, impound, shared)
-    return fw.gpvbg(src, garage, {
+    print("^3[rhd_garage:DEBUG] Servidor recebeu pedido de lista: Player=" .. src .. " | Garagem=" .. tostring(garage) .. " | Impound=" .. tostring(impound) .. "^7")
+    
+    local list = fw.gpvbg(src, garage, {
         impound = impound,
         shared = shared
     })
+    
+    print("^2[rhd_garage:DEBUG] Servidor processou a lista. Veículos encontrados: " .. (list and #list or 0) .. "^7")
+    return list
 end)
 
 lib.callback.register("rhd_garage:cb_server:swapGarage", function (source, clientData)
@@ -151,6 +181,37 @@ local vehicleSpawnCooldown = {}
 
 lib.callback.register('rhd_garage:server:spawnVehicle', function(source, model, coords, props)
     local playerId = source
+    local plate = props and props.plate
+
+    -- Prevenção de Duplicação: Deleta veículo antigo se existir no mapa
+    if Config.DeleteOldVehicleOnSpawn and plate then
+        local allVehicles = GetAllVehicles()
+        for _, veh in ipairs(allVehicles) do
+            if DoesEntityExist(veh) then
+                local vehPlate = GetVehicleNumberPlateText(veh)
+                if vehPlate and vehPlate:gsub("%s+", "") == plate:gsub("%s+", "") then
+                    DeleteEntity(veh)
+                end
+            end
+        end
+    end
+
+    -- Verificação de Cooldown (Anti-Abuso Detran)
+    if plate then
+        local vehData = MySQL.single.await('SELECT state, last_out FROM player_vehicles WHERE plate = ? OR fakeplate = ?', {plate, plate})
+        if vehData and (vehData.state == 0 or vehData.state == 3) then
+            local currentTime = os.time()
+            local lastOut = vehData.last_out or 0
+            local waitTime = (vehData.state == 0) and Config.RecoveryCooldown or Config.DestroyedCooldown
+            
+            if (currentTime - lastOut) < waitTime then
+                local remaining = waitTime - (currentTime - lastOut)
+                local minutes = math.ceil(remaining / 60)
+                utils.notify(playerId, "O seguro está investigando o desaparecimento. Volte em " .. minutes .. " minutos.", "error")
+                return false, false
+            end
+        end
+    end
 
     if vehicleSpawnCooldown[playerId] then
         return false, false

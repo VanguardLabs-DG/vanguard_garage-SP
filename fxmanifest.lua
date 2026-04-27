@@ -4,7 +4,7 @@ version '1.4.1'
 author 'Reyghita Hafizh Firmanda'
 description 'Garage system for ESX & QBCore made by RHD Team'
 
-ui_page 'web/showroom_tags/index.html'
+ui_page 'web/index.html'
 
 shared_scripts {
     '@ox_lib/init.lua',
@@ -44,6 +44,7 @@ files {
     'dui/index.html',
     'dui/style.css',
     'dui/app.js',
+    'web/index.html',
     'web/showroom_tags/index.html',
 }
 

@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MRI Garage - Luxury Edition</title>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@100..800&family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        /* ---- Design Tokens MRI_ESC ---- */
+        :root {
+            --d900: #05050E;
+            --d800: #0A0A18;
+            --blue: #0094E1;
+            --blue-glow: rgba(0, 148, 225, 0.6);
+            --orange: #FF8F00;
+            --orange-glow: rgba(255, 143, 0, 0.4);
+            --t1: #FFFFFF;
+            --t2: #D1D1FF;
+            --t3: #8B8BB9;
+            --glass-b: rgba(255, 255, 255, 0.08);
+            --green: #00E676;
+            --red: #FF4757;
+        }
+
+        /* ---- Custom Scrollbar ---- */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--blue); }
+
+        body, html { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; background: transparent !important; font-family: 'Sora', 'Urbanist', sans-serif; -webkit-user-select: none; user-select: none; }
+        [x-cloak] { display: none !important; }
+
+        .app-wrapper {
+            position: fixed; inset: 0;
+            display: flex; justify-content: flex-start;
+            z-index: 10;
+        }
+
+        /* Sidebar com Fade de fundo Ultra-Longo */
+        .sidebar {
+            width: 750px;
+            height: 100vh;
+            background: linear-gradient(to right, 
+                rgba(5, 5, 14, 1.0) 0%, 
+                rgba(5, 5, 14, 1.0) 380px, 
+                rgba(5, 5, 14, 0.8) 500px,
+                rgba(5, 5, 14, 0.4) 650px,
+                transparent 100%);
+            display: flex; flex-direction: column;
+            position: relative;
+            animation: slideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow: hidden;
+        }
+
+        .sidebar-glow {
+            position: absolute;
+            top: 0; left: 0;
+            width: 250px;
+            height: 100%;
+            background: linear-gradient(to right, rgba(0, 148, 225, 0.2) 0%, transparent 100%);
+            pointer-events: none;
+            z-index: 1;
+            transition: 0.5s;
+        }
+        .is-impound .sidebar-glow {
+            background: linear-gradient(to right, rgba(255, 143, 0, 0.15) 0%, transparent 100%);
+        }
+
+        .sidebar-line {
+            position: absolute;
+            top: 0; left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--blue);
+            box-shadow: 0 0 20px 2px var(--blue-glow);
+            z-index: 10;
+            transition: 0.5s;
+        }
+        .is-impound .sidebar-line {
+            background: var(--orange);
+            box-shadow: 0 0 20px 2px var(--orange-glow);
+        }
+
+        @keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+
+        /* Conteúdo Principal */
+        .content-container {
+            width: 400px;
+            height: 100%;
+            display: flex; flex-direction: column;
+            position: relative;
+            z-index: 2;
+            padding-left: 4px;
+        }
+
+        .header { padding: 45px 35px 25px; }
+        .logo-wordmark { font-size: 26px; font-weight: 900; letter-spacing: 4px; color: var(--blue); text-shadow: 0 0 20px var(--blue-glow); transition: 0.5s; }
+        .is-impound .logo-wordmark { color: var(--orange); text-shadow: 0 0 20px var(--orange-glow); }
+        .logo-subtitle { font-size: 10px; font-weight: 600; letter-spacing: 3px; color: var(--t3); text-transform: uppercase; margin-top: 2px; }
+
+        .search-area { padding: 0 35px; margin-bottom: 25px; }
+        .search-input-wrap {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--glass-b);
+            border-radius: 14px;
+            display: flex; align-items: center; padding: 0 16px;
+        }
+        .search-input-wrap input {
+            background: transparent; border: none; padding: 16px 12px;
+            color: var(--t1); width: 100%; outline: none; font-family: inherit; font-size: 14px;
+        }
+
+        .vehicle-list { flex: 1; overflow-y: auto; padding: 0 25px 20px 35px; }
+        
+        /* Empty List State */
+        .empty-state {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 300px; text-align: center; opacity: 0.5;
+        }
+        .empty-state i { font-size: 40px; color: var(--t3); margin-bottom: 20px; }
+        .empty-state p { font-size: 12px; font-weight: 800; color: var(--t3); text-transform: uppercase; letter-spacing: 2px; line-height: 1.6; }
+
+        .veh-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--glass-b);
+            border-radius: 16px; padding: 20px; margin-bottom: 12px;
+            cursor: pointer; transition: 0.3s cubic-bezier(0.2, 1, 0.2, 1);
+            display: flex; align-items: center; justify-content: space-between;
+            position: relative;
+        }
+        .veh-card:hover { background: rgba(255, 255, 255, 0.06); transform: translateX(8px); }
+        .veh-card.active { border-color: var(--blue); background: linear-gradient(90deg, rgba(0, 148, 225, 0.2), transparent); }
+        .is-impound .veh-card.active { border-color: var(--orange); background: linear-gradient(90deg, rgba(255, 143, 0, 0.15), transparent); }
+        
+        .veh-card.active::before { 
+            content: ''; position: absolute; left: 0; top: 25%; height: 50%; width: 4px; 
+            background: var(--blue); border-radius: 0 4px 4px 0; box-shadow: 0 0 15px var(--blue); 
+            transition: 0.5s;
+        }
+        .is-impound .veh-card.active::before { background: var(--orange); box-shadow: 0 0 15px var(--orange); }
+
+        .veh-card-info h3 { font-size: 14px; font-weight: 800; text-transform: uppercase; margin: 0; color: var(--t1); }
+        .veh-card-info p { font-size: 11px; font-weight: 600; color: var(--t3); margin: 4px 0 0; font-family: 'Urbanist'; letter-spacing: 1.5px; }
+
+        .price-badge {
+            background: rgba(255, 143, 0, 0.1);
+            color: var(--orange);
+            border: 1px solid var(--orange-glow);
+            padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 900;
+        }
+
+        /* Details Panel */
+        .details-panel {
+            background: #05050E;
+            padding: 40px 35px;
+            border-top: 1px solid var(--glass-b);
+            border-radius: 40px 40px 0 0;
+            box-shadow: 0 -30px 80px rgba(0,0,0,1);
+            position: absolute; bottom: 0; left: 0;
+            width: 100%;
+            box-sizing: border-box;
+            z-index: 5;
+            max-height: 70vh;
+            overflow-y: auto;
+            animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+        .veh-name-title { font-size: 26px; font-weight: 900; letter-spacing: -0.5px; color: var(--t1); margin: 0; }
+        .veh-plate-pill { 
+            display: inline-block; background: var(--blue); color: #fff;
+            padding: 5px 14px; border-radius: 8px; font-size: 13px; font-weight: 900;
+            margin-top: 10px; box-shadow: 0 8px 20px var(--blue-glow);
+            transition: 0.5s;
+        }
+        .is-impound .veh-plate-pill { background: var(--orange); box-shadow: 0 8px 20px var(--orange-glow); }
+
+        .preview-box { height: 160px; display: flex; align-items: center; justify-content: center; margin: 20px 0 35px; }
+        .preview-box img { max-width: 100%; max-height: 100%; filter: drop-shadow(0 25px 50px rgba(0,0,0,1)); }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 35px; }
+        .stat-card {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--glass-b);
+            border-radius: 18px; padding: 20px 10px; text-align: center;
+        }
+        .stat-label { font-size: 9px; font-weight: 800; color: var(--t3); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; display: block; }
+        .stat-icon { font-size: 18px; color: var(--blue); margin-bottom: 12px; transition: 0.5s; }
+        .is-impound .stat-icon { color: var(--orange); }
+        .stat-value { font-size: 18px; font-weight: 900; color: var(--t1); }
+
+        .btn-withdraw {
+            width: 100%; padding: 22px; border-radius: 18px; border: none;
+            background: linear-gradient(135deg, var(--blue), #1e40af);
+            color: #fff; font-weight: 900; font-size: 15px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px;
+            transition: 0.3s; text-transform: uppercase; letter-spacing: 2px;
+            box-shadow: 0 15px 40px var(--blue-glow);
+        }
+        .btn-withdraw:hover:not(:disabled) { filter: brightness(1.2); transform: translateY(-5px); }
+        .btn-withdraw:disabled { opacity: 0.1; cursor: not-allowed; filter: grayscale(1); }
+
+        .btn-impound {
+            background: linear-gradient(135deg, var(--orange), #c2410c);
+            box-shadow: 0 15px 40px var(--orange-glow);
+        }
+
+        .hint-text { margin-top: 25px; text-align: center; font-size: 10px; font-weight: 800; color: var(--t3); letter-spacing: 2px; text-transform: uppercase; }
+
+        #tags-iframe { position: fixed; inset: 0; border: none; pointer-events: none; z-index: 100; }
+    </style>
+</head>
+<body x-data="garageApp()">
+    
+    <iframe src="showroom_tags/index.html" id="tags-iframe" x-cloak></iframe>
+
+    <div class="app-wrapper" x-show="isOpen" :class="{ 'is-impound': isImpound }" x-cloak>
+        <div class="sidebar">
+            <div class="sidebar-glow"></div>
+            <div class="sidebar-line"></div>
+
+            <div class="content-container">
+                
+                <header class="header">
+                    <div class="logo-wordmark" x-text="isImpound ? 'DETRAN' : 'MRI'"></div>
+                    <div class="logo-subtitle" x-text="isImpound ? 'PÁTIO DE APREENSÃO' : 'GARAGEM'"></div>
+                </header>
+
+                <div class="search-area">
+                    <div class="search-input-wrap">
+                        <i class="fa-solid fa-search" style="color: var(--t3); font-size: 16px;"></i>
+                        <input type="text" placeholder="BUSCAR SEU VEÍCULO..." x-model="search">
+                    </div>
+                </div>
+
+                <div class="vehicle-list">
+                    <!-- Mensagem de Lista Vazia -->
+                    <template x-if="filteredVehicles().length === 0">
+                        <div class="empty-state">
+                            <i class="fa-solid fa-car-on"></i>
+                            <p x-text="isImpound ? 'Nenhum veículo apreendido ou em busca' : 'Nenhum veículo encontrado nesta unidade'"></p>
+                        </div>
+                    </template>
+
+                    <template x-for="veh in filteredVehicles()" :key="veh.plate">
+                        <div class="veh-card" :class="{ 'active': selected && selected.plate === veh.plate }" @click="selectVehicle(veh)">
+                            <div class="veh-card-info">
+                                <h3 x-text="veh.name"></h3>
+                                <p x-text="veh.plate"></p>
+                            </div>
+                            <div class="price-badge" x-show="isImpound" x-text="'R$ ' + veh.price.toLocaleString('pt-BR')"></div>
+                            <i x-show="!isImpound" class="fa-solid fa-chevron-right" style="font-size: 14px; color: var(--glass-b)"></i>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Details Dialogue -->
+                <div class="details-panel" x-show="selected" x-transition:enter="slide-up">
+                    <div class="details-top">
+                        <h1 class="veh-name-title" x-text="selected?.name"></h1>
+                        <span class="veh-plate-pill" x-text="selected?.plate"></span>
+                    </div>
+
+                    <div class="preview-box">
+                        <template x-if="imageStatus[selected?.plate] !== 'failed'">
+                            <img :src="getImgUrl(selected?.model, selected?.plate)" 
+                                 @error="onImageError(selected?.plate, selected?.model)" 
+                                 loading="lazy">
+                        </template>
+                        <template x-if="imageStatus[selected?.plate] === 'failed'">
+                            <i class="fa-solid fa-car" style="font-size: 70px; color: var(--glass-b); opacity: 0.2;"></i>
+                        </template>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-label">Tanque</span>
+                            <i class="fa-solid fa-gas-pump stat-icon"></i>
+                            <span class="stat-value" x-text="Math.round(selected?.fuel || 0) + '%'"></span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Motor</span>
+                            <i class="fa-solid fa-microchip stat-icon"></i>
+                            <span class="stat-value" x-text="Math.round((selected?.engine || 0)/10) + '%'"></span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Lataria</span>
+                            <i class="fa-solid fa-car-burst stat-icon"></i>
+                            <span class="stat-value" x-text="Math.round((selected?.body || 0)/10) + '%'"></span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Status</span>
+                            <i class="fa-solid fa-circle-exclamation stat-icon" x-show="selected?.state_text === 'Quebrado'" style="color: var(--red)"></i>
+                            <i class="fa-solid fa-check-circle stat-icon" x-show="selected?.state_text !== 'Quebrado'" :style="'color:' + (selected?.state === 1 ? 'var(--green)' : 'var(--red)')"></i>
+                            
+                            <span class="stat-value" :style="'color:' + (selected?.state_text === 'Quebrado' ? 'var(--red)' : (selected?.state === 1 ? 'var(--green)' : 'var(--red)'))" x-text="selected?.state_text"></span>
+                        </div>
+                    </div>
+
+                    <button class="btn-withdraw" :class="{ 'btn-impound': isImpound }" @click="spawn()">
+                        <template x-if="!isImpound">
+                            <i class="fa-solid fa-key"></i>
+                        </template>
+                        <template x-if="isImpound">
+                            <i class="fa-solid fa-hand-holding-dollar"></i>
+                        </template>
+                        <span x-text="isImpound ? 'PAGAR E RECUPERAR' : 'RETIRAR VEÍCULO'"></span>
+                    </button>
+
+                    <div class="hint-text">ESC PARA FECHAR</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const Nui = {
+            async post(action, data = {}) {
+                const resName = GetParentResourceName ? GetParentResourceName() : 'rhd_garage';
+                try {
+                    const resp = await fetch(`https://${resName}/${action}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                    return await resp.json();
+                } catch (e) { return { error: true }; }
+            }
+        };
+
+        function garageApp() {
+            return {
+                isOpen: false,
+                isImpound: false,
+                vehicles: [],
+                search: '',
+                selected: null,
+                garageName: '',
+                imageStatus: {},
+
+                init() {
+                    window.addEventListener('message', (event) => {
+                        const item = event.data;
+                        if (item.action === 'open') {
+                            this.vehicles = item.vehicles || [];
+                            this.garageName = item.garage;
+                            this.isImpound = item.isImpound || false;
+                            this.isOpen = true;
+                            this.selected = null;
+                            this.imageStatus = {};
+                        }
+                        if (item.action === 'close') this.isOpen = false;
+                    });
+                    document.addEventListener('keydown', (e) => {
+                        if (e.key === 'Escape' && this.isOpen) this.close();
+                    });
+                },
+
+                filteredVehicles() {
+                    if (!this.search) return this.vehicles;
+                    const s = this.search.toLowerCase();
+                    return this.vehicles.filter(v => v.name.toLowerCase().includes(s) || v.plate.toLowerCase().includes(s));
+                },
+
+                selectVehicle(v) { this.selected = v; },
+
+                getImgUrl(model, plate) {
+                    if (!model) return '';
+                    const status = this.imageStatus[plate];
+                    const lower = model.toLowerCase();
+                    if (status === 'nui-PNG') return `vehicles/${lower}.PNG`;
+                    if (status === 'primary') return `https://cfx-nui-ox_inventory/web/images/${lower}.png`;
+                    if (status === 'fallback') return `https://docs.fivem.net/vehicles/${lower}.webp`;
+                    return `vehicles/${lower}.png`;
+                },
+
+                onImageError(plate, model) {
+                    const status = this.imageStatus[plate];
+                    if (!status) this.imageStatus[plate] = 'nui-PNG';
+                    else if (status === 'nui-PNG') this.imageStatus[plate] = 'primary';
+                    else if (status === 'primary') this.imageStatus[plate] = 'fallback';
+                    else if (status === 'fallback') this.imageStatus[plate] = 'failed';
+                    this.imageStatus = { ...this.imageStatus };
+                },
+
+                spawn() {
+                    if (!this.selected) return;
+                    Nui.post('takeOutVehicle', { 
+                        plate: this.selected.plate, 
+                        garage: this.garageName,
+                        price: this.selected.price,
+                        model: this.selected.model,
+                        name: this.selected.name
+                    });
+                    this.close();
+                },
+
+                close() {
+                    this.isOpen = false;
+                    Nui.post('closeUI');
+                }
+            }
+        }
+    </script>
+</body>
+</html>

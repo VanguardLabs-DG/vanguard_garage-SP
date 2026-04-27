@@ -3,6 +3,7 @@ local UPDATE_SQL = {
     ADD_COLUMN_PAYMENTAMOUNT = 'ALTER TABLE player_vehicles ADD paymentamount int(11) NOT NULL DEFAULT 0;',
     ADD_COLUMN_PAYMENTSLEFT = 'ALTER TABLE player_vehicles ADD paymentsleft int(11) NOT NULL DEFAULT 0;',
     ADD_COLUMN_FINANCETIME = 'ALTER TABLE player_vehicles ADD financetime int(11) NOT NULL DEFAULT 0;',
+    ADD_COLUMN_LASTOUT = 'ALTER TABLE player_vehicles ADD last_out int(11) NOT NULL DEFAULT 0;',
 }
 
 AddEventHandler('onResourceStart', function(resource)

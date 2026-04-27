@@ -13,6 +13,9 @@ Config.VehiclesInAllGarages = true --- Opção ZAP: deixe true para todos os ve�
 Config.DisableVehicleCamera = false --- Desativa a movimentação de câmera ao puxar o veículo
 Config.RepairOnInsurance = true -- Se true, o veículo virá 100% consertado ao pagar a franquia de 25% no Pátio. Se false, virá quebrado.
 Config.LocateVehicleOutGarage = true --- Opção ZAP: encontrar veículos fora da garagem
+Config.RecoveryCooldown = 3600 -- 1 hora (em segundos) para carros "Fora da Garagem" (state 0)
+Config.DestroyedCooldown = 300 -- 5 minutos (em segundos) para carros "Destruídos" (state 3)
+Config.DeleteOldVehicleOnSpawn = true -- Se true, deleta a cópia antiga do carro que estiver no mapa ao retirar do Pátio
 
 --- Additional: (Requires ox_target or qb-target resource)
 Config.UseJobVechileShop = false --- Change this to false if you do not want to use the work vehicle shop system from rhd

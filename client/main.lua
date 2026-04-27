@@ -1,6 +1,12 @@
 local VehicleShow = nil
 local Deformation = require 'modules.deformation'
 
+AddEventHandler('onResourceStart', function(resource)
+    if resource == GetCurrentResourceName() then
+        LocalPlayer.state:set('garageBusy', false, true)
+    end
+end)
+
 local function destroyPreview(keepCam)
     if VehicleShow and DoesEntityExist(VehicleShow) then
         if not keepCam then
@@ -108,7 +114,15 @@ local function spawnvehicle(data)
             Deformation.set(vehEntity, deformationData)
         end
 
-        while not vehEntity do Wait(10) end
+        local timeout = 500 -- 5 segundos de timeout
+        while vehEntity == nil and timeout > 0 do 
+            Wait(10) 
+            timeout = timeout - 1
+        end
+
+        if not vehEntity then 
+            error('Falha ao criar entidade do veículo ou spawn cancelado.')
+        end
 
         Entity(vehEntity).state:set('vehlabel', vehData.vehicle_name or data.vehicle_name)
         
@@ -495,191 +509,211 @@ end
 --- Open Garage
 ---@param data GarageVehicleData
 local function openMenu(data)
-    if LocalPlayer.state.garageBusy then return end
-    if not data then return end
+    print("^3[rhd_garage:DEBUG] Tentando abrir menu. Garagem: " .. tostring(data.garage) .. " | Impound: " .. tostring(data.impound) .. "^7")
+    
+    if LocalPlayer.state.garageBusy then 
+        print("^1[rhd_garage:DEBUG] Abortado: LocalPlayer.state.garageBusy está TRUE^7")
+        return 
+    end
+    
     data.type = data.type or "car"
-    
-    local menuData = {
-        id = 'garage_menu',
-        title = data.garage,
-        options = {}
-    }
-
-    if not data.impound and Config.Showrooms.Config.Enable then
-        menuData.options[#menuData.options + 1] = {
-            title = "VISUALIZAR SHOWROOM",
-            icon = "eye",
-            iconAnimation = Config.IconAnimation,
-            onSelect = function()
-                exports.rhd_garage:openShowRoom(data)
-            end
-        }
-    end
-    
-    if data.vehicles then
-        menuData = listAddedVehicles(data, menuData)
-        if #menuData.options >= 1 then
-            utils.createMenu(menuData)
-            return
-        end
-    end
+    print("^3[rhd_garage:DEBUG] Chamando callback 'rhd_garage:cb_server:getVehicleList'...^7")
     
     local vehData = lib.callback.await('rhd_garage:cb_server:getVehicleList', false, data.garage, data.impound, data.shared)
     
-    if not vehData then
-        return
+    if not vehData then 
+        print("^1[rhd_garage:DEBUG] Erro: Callback retornou NIL ou lista vazia.^7")
+        utils.notify(locale('notify.error.no_vehicles'), 'error')
+        return 
     end
     
+    print("^2[rhd_garage:DEBUG] Veículos recebidos do servidor: " .. #vehData .. "^7")
+    
+    local formattedVehicles = {}
     for i = 1, #vehData do
         local vd = vehData[i]
-        local vehProp = vd.vehicle
         local vehModel = vd.model
         local plate = utils.string.trim(vd.plate)
-        local vehDeformation = vd.deformation
         local gState = vd.state
-        local pName = vd.owner or "Unkown Players"
-        local fakeplate = vd.fakeplate and utils.string.trim(vd.fakeplate)
-        local engine = vd.engine
-        local body = vd.body
-        local fuel = vd.fuel
-        local dp = vd.depotprice
-        
         local vehName = vd.vehicle_name or fw.gvn(vehModel)
-        local customvehName = CNV[plate] and CNV[plate].name
-        local vehlabel = customvehName or vehName
-        
-        local shared_garage = data.shared
-        local disabled = false
-        local description = ''
-        
-        plate = fakeplate or plate
         
         local vehicleClass = GetVehicleClassFromName(vehModel)
         local vehicleType = utils.getCategoryByClass(vehicleClass)
         
+        print("^3[rhd_garage:DEBUG] Processando: " .. vehName .. " (" .. plate .. ") | Tipo: " .. tostring(vehicleType) .. " | Estado: " .. tostring(gState) .. "^7")
+
+        -- Camada de Segurança: Se estiver no Detran e o carro estiver num raio de 200m, oculta da lista
+        if data.impound and gState == 0 then
+            local vehiclesNear = GetGamePool('CVehicle')
+            local isNear = false
+            local playerPos = GetEntityCoords(cache.ped)
+            
+            for _, veh in ipairs(vehiclesNear) do
+                if #(GetEntityCoords(veh) - playerPos) < 200.0 then
+                    local nearPlate = utils.getPlate(veh)
+                    if nearPlate == plate then
+                        isNear = true
+                        break
+                    end
+                end
+            end
+
+            if isNear then
+                print("^1[rhd_garage:DEBUG] Ocultando " .. plate .. " pois o veículo físico está num raio de 200m do jogador.^7")
+                goto next_vehicle
+            end
+        end
+
         if lib.table.contains(data.type, vehicleType) then
-            local icon = Config.Icons[vehicleClass] or 'car'
-            local ImpoundPrice = dp > 0 and dp or Config.ImpoundPrice[vehicleClass]
+            local engine = vd.engine or 1000
+            local body = vd.body or 1000
+            local stateText = "Na Garagem"
             
-            -- Garantir que engine e body sejam números
-            local vEngine = tonumber(engine) or 1000
-            local vBody = tonumber(body) or 1000
-            local isTotalLoss = (vEngine <= 0 and vBody <= 0)
-
-            if data.impound and isTotalLoss then
-                local marketPrice = tonumber(vd.marketPrice) or 0
-                if marketPrice > 0 then
-                    ImpoundPrice = math.floor(marketPrice * 0.25)
-                end
+            if engine <= 0 and body <= 0 then
+                stateText = "Quebrado"
+            elseif gState == 0 then 
+                stateText = "Fora da Garagem"
+            elseif gState == 2 then 
+                stateText = "Apreendido"
+            elseif gState == 3 then 
+                stateText = "Destruído" 
             end
 
-            local impound = false
-            if gState == 0 then
-                -- Se for Pátio e Perda Total, OBRIGA a pagar a Franquia
-                if data.impound and isTotalLoss then
-                    impound = true
-                    description = 'FRANQUIA SEGURO (25%): R$ ' .. lib.math.groupdigits(ImpoundPrice, '.')
-                
-                -- Se o carro estiver na rua (inteiro)
-                elseif (Config.VehiclesInAllGarages and vehFunc.govbp(plate)) or (not Config.VehiclesInAllGarages and vehFunc.tvbp(plate, data.garage)) then
-                    disabled = not Config.LocateVehicleOutGarage
-                    description = 'STATUS: ' .. locale('status.out')
-                elseif Config.VehiclesInAllGarages and vehFunc.tvbp(plate, nil) then
-                    disabled = not Config.LocateVehicleOutGarage
-                    description = 'STATUS: ' .. locale('status.out')
-                
-                -- Se o carro não estiver na rua (Impound comum)
-                else
-                    impound = true
-                    description = locale('garage.impound_price', ImpoundPrice)
-                end
+            -- Cálculo de Preço para Pátio/Detran
+            local price = 0
+            if data.impound then
+                price = Config.ImpoundPrice[vehicleClass] or 5000
             end
-            
-            if gState == 1 then
-                impound = false
-                description = 'STATUS: ' .. locale('status.in')
-                if shared_garage then
-                    description = locale('context.garage.owner_label', pName) .. ' \n' .. 'STATUS: ' .. locale('status.in')
-                end
-            end
-            
-            local vehicleLabel = ('%s [ %s ]'):format(vehlabel, plate)
-            menuData.options[#menuData.options + 1] = {
-                title = vehicleLabel,
-                icon = icon,
-                disabled = disabled,
-                description = description:upper(),
-                iconAnimation = Config.IconAnimation,
-                metadata = getVehMetadata(vd),
-                onSelect = function()
-                    if gState == 0 and engine <= 0 then
-                        local nearbyVeh = vehFunc.govbp(plate)
-                        if nearbyVeh then
-                            return utils.notify("Seu veículo já está aqui perto, mas está enguiçado. Chame um mecânico ou use um kit de reparo!", 'error', 8000)
-                        end
-                    end
 
-                    if gState == 0 and engine > 0 and vehFunc.tvbp(plate, nil) and not disabled then
-                        if vehFunc.tvbp(plate, nil, true) then
-                            return utils.notify(locale('notify.success.locate_vehicle'), 'success', 8000)
-                        end
-                    end
-
-                    local pedHeading = GetEntityHeading(cache.ped)
-                    local worlcoords = GetOffsetFromEntityInWorldCoords(cache.ped, 0.0, 2.0, 0.5)
-                    local defaultcoords = vec(worlcoords, pedHeading + 90)
-                    
-                    if data.spawnpoint then
-                        defaultcoords = getAvailableSP(data.spawnpoint, data.ignoreDist, defaultcoords)--[[@as vector4]]
-                    end
-                    
-                    if not defaultcoords then
-                        return utils.notify(locale('notify.error.no_parking_spot'), 'error', 8000)
-                    end
-                    
-                    local vehInArea = lib.getClosestVehicle(defaultcoords.xyz)
-                    if DoesEntityExist(vehInArea) then return utils.notify(locale('notify.error.no_parking_spot'), 'error') end
-                    
-                    VehicleShow = utils.createPreviewVeh(vehModel, defaultcoords)
-                    FreezeEntityPosition(VehicleShow, true)
-                    SetVehicleDoorsLocked(VehicleShow, 2)
-                    utils.createPreviewCam(VehicleShow)
-                    
-                    if vehProp and next(vehProp) then
-                        vehFunc.svp(VehicleShow, vehProp)
-                    end
-                    
-                    actionMenu({
-                        prop = vehProp,
-                        engine = engine,
-                        fuel = fuel,
-                        body = body,
-                        model = vehModel,
-                        plate = plate,
-                        coords = defaultcoords,
-                        garage = data.garage,
-                        vehName = vehicleLabel,
-                        vehicle_name = vehlabel,
-                        impound = impound,
-                        shared = data.shared,
-                        deformation = vehDeformation,
-                        depotprice = ImpoundPrice,
-                        icon = icon
-                    })
-                end,
+            formattedVehicles[#formattedVehicles + 1] = {
+                name = vehName,
+                model = vehModel,
+                plate = plate,
+                fuel = vd.fuel or 100,
+                engine = vd.engine or 1000,
+                body = vd.body or 1000,
+                state = gState,
+                state_text = stateText,
+                last_out = vd.last_out or 0,
+                garage = data.garage,
+                price = price
             }
+        else
+            print("^3[rhd_garage:DEBUG] Veículo " .. vehName .. " filtrado (tipo incompatível com esta garagem: " .. tostring(vehicleType) .. ")^7")
+        end
+        ::next_vehicle::
+    end
+
+    print("^2[rhd_garage:DEBUG] Total de veículos formatados para a UI: " .. #formattedVehicles .. "^7")
+
+    print("^5[rhd_garage:DEBUG] Enviando SendNUIMessage(open)...^7")
+    SetNuiFocus(true, true)
+    SendNUIMessage({
+        action = "open",
+        vehicles = formattedVehicles,
+        garage = data.garage,
+        isImpound = data.impound
+    })
+    print("^2[rhd_garage:DEBUG] Foco do NUI definido e mensagem enviada.^7")
+end
+
+RegisterNUICallback('closeUI', function(data, cb)
+    SetNuiFocus(false, false)
+    cb('ok')
+end)
+
+RegisterNUICallback('takeOutVehicle', function(data, cb)
+    local garageData = GarageZone[data.garage]
+    local isImpound = garageData and garageData.impound
+
+    -- ETAPA 1: Verificação de Cooldown via Servidor (RP - GRATUITO)
+    if isImpound then
+        local check = lib.callback.await('rhd_garage:server:checkRecovery', false, data.plate)
+        
+        if check and not check.allowed then
+            SetNuiFocus(false, false)
+            local minutes = math.ceil(check.remaining / 60)
+
+            local alert = lib.alertDialog({
+                header = 'REGISTRO DE INCIDÊNCIA',
+                content = 'Este veículo não está no pátio no momento. Deseja registrar uma queixa de perda ou roubo para que o seguro inicie as buscas?',
+                centered = true,
+                cancel = true,
+                labels = { confirm = 'Registrar Queixa', cancel = 'Voltar' }
+            })
+
+            if alert == 'confirm' then
+                utils.notify("Queixa registrada. O seguro está investigando. Volte em " .. minutes .. " minutos.", "info", 10000)
+            end
+            
+            cb('ok')
+            return
         end
     end
-    
-    if #menuData.options < 1 then
-        menuData.options[#menuData.options + 1] = {
-            title = locale('garage.no_vehicles'):upper(),
-            disabled = true
-        }
+
+    -- ETAPA 2: Confirmação de Pagamento (Somente se não houver cooldown)
+    if isImpound and data.price and data.price > 0 then
+        SetNuiFocus(false, false) -- Fecha o NUI para o diálogo de pagamento
+        
+        local confirmPay = lib.alertDialog({
+            header = 'CONFIRMAR RECUPERAÇÃO',
+            content = string.format('Deseja pagar a taxa de R$ %s para recuperar o veículo %s (%s)?', lib.math.groupdigits(data.price, '.'), data.name, data.plate),
+            centered = true,
+            cancel = true,
+            labels = { confirm = 'Pagar e Recuperar', cancel = 'Cancelar' }
+        })
+
+        if confirmPay ~= 'confirm' then
+            cb('cancel')
+            return
+        end
+
+        -- Tenta remover dinheiro
+        local paymentType = "bank"
+        if fw.gm('bank') < data.price then paymentType = "cash" end
+
+        if fw.gm(paymentType) < data.price then
+            utils.notify("Você não possui dinheiro suficiente.", 'error')
+            cb('error')
+            return
+        end
+
+        local success = lib.callback.await('rhd_garage:cb_server:removeMoney', false, paymentType, data.price)
+        if not success then
+            utils.notify("Erro ao processar pagamento.", 'error')
+            cb('error')
+            return
+        end
+        utils.notify("Pagamento de R$ " .. data.price .. " realizado!", 'success')
     end
-    
-    utils.createMenu(menuData)
-end
+
+    SetNuiFocus(false, false)
+
+    -- ETAPA 3: Spawn do Veículo
+    if garageData and Config.Showrooms.Config.Enable and not isImpound then
+        exports.rhd_garage:openShowRoom({
+            garage = data.garage,
+            plate = data.plate
+        })
+    else
+        local pedHeading = GetEntityHeading(cache.ped)
+        local worlcoords = GetOffsetFromEntityInWorldCoords(cache.ped, 0.0, 2.0, 0.5)
+        local defaultcoords = vec(worlcoords, pedHeading + 90)
+        
+        if garageData and garageData.spawnpoint then
+            defaultcoords = getAvailableSP(garageData.spawnpoint, false, defaultcoords)
+        end
+
+        spawnvehicle({
+            plate = data.plate,
+            garage = data.garage,
+            coords = defaultcoords,
+            model = data.model,
+            name = data.name
+        })
+    end
+    cb('ok')
+end)
 
 --- Store Vehicle To Garage
 ---@param data GarageVehicleData
@@ -757,35 +791,59 @@ local function storeVeh(data)
     end
 end
 
--- Monitoramento de destruição em tempo real (Versão Aprimorada)
+-- Monitoramento Otimizado de Veículos (Raio de 200m / 5s)
 CreateThread(function()
-    local monitoredVehicle = nil
-    local monitoredPlate = nil
+    local lastVehicle = nil
+    local lastPlate = nil
     
     while true do
-        local sleep = 1000
-        local vehicle = cache.vehicle
+        Wait(5000) -- Intervalo de 5 segundos
         
-        if vehicle then
-            monitoredVehicle = vehicle
-            monitoredPlate = utils.getPlate(vehicle)
+        local ped = cache.ped
+        local playerCoords = GetEntityCoords(ped)
+        local currentVehicle = cache.vehicle
+        
+        -- Atualiza o último veículo se estiver dirigindo
+        if currentVehicle then
+            lastVehicle = currentVehicle
+            lastPlate = utils.getPlate(currentVehicle)
         end
         
-        if monitoredVehicle and DoesEntityExist(monitoredVehicle) then
-            local engine = GetVehicleEngineHealth(monitoredVehicle)
-            local submerged = IsEntityInWater(monitoredVehicle)
-            local dead = IsEntityDead(monitoredVehicle)
+        -- Monitora o último veículo (até 200m)
+        if lastVehicle and DoesEntityExist(lastVehicle) then
+            local vehCoords = GetEntityCoords(lastVehicle)
+            local dist = #(playerCoords - vehCoords)
             
-            if (submerged or dead or engine <= 0) and monitoredPlate then
-                print("^1[rhd_garage] Veículo destruído detectado! Placa: " .. monitoredPlate .. "^7")
-                TriggerServerEvent('rhd_garage:server:destroyVehicle', monitoredPlate)
-                monitoredVehicle = nil
-                monitoredPlate = nil
-                sleep = 5000
+            if dist < 200.0 then
+                local engine = GetVehicleEngineHealth(lastVehicle)
+                local submerged = IsEntityInWater(lastVehicle)
+                local dead = IsEntityDead(lastVehicle)
+                
+                if (submerged or dead or engine <= 0) and lastPlate then
+                    print("^1[rhd_garage] Veículo destruído detectado (Raio 200m)! Placa: " .. lastPlate .. "^7")
+                    TriggerServerEvent('rhd_garage:server:destroyVehicle', lastPlate)
+                    lastVehicle = nil
+                    lastPlate = nil
+                end
+            else
+                -- Esquece o veículo se o jogador se afastar mais de 200m
+                lastVehicle = nil
+                lastPlate = nil
             end
         end
         
-        Wait(sleep)
+        -- Verificação de barricada/proximidade (10m) para outros veículos
+        if not currentVehicle then
+            local nearbyVeh = lib.getClosestVehicle(playerCoords, 10.0, true)
+            if nearbyVeh and nearbyVeh ~= lastVehicle then
+                if IsEntityDead(nearbyVeh) or IsEntityInWater(nearbyVeh) or GetVehicleEngineHealth(nearbyVeh) <= 0 then
+                    local plate = utils.getPlate(nearbyVeh)
+                    if plate then
+                        TriggerServerEvent('rhd_garage:server:destroyVehicle', plate)
+                    end
+                end
+            end
+        end
     end
 end)
 
