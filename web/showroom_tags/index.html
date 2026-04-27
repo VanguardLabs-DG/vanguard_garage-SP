@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: transparent;
+            font-family: 'Montserrat', sans-serif;
+            color: white;
+            user-select: none;
+        }
+
+        .tag-container {
+            position: absolute;
+            transform: translate(-50%, -100%);
+            pointer-events: none;
+            transition: opacity 0.1s ease;
+        }
+
+        .tag-card {
+            background-color: rgba(20, 20, 20, 0.9);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+            width: 280px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .tag-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .tag-title {
+            font-size: 18px;
+            font-weight: 900;
+            text-transform: uppercase;
+            color: #fff;
+            margin: 0;
+        }
+
+        .tag-plate {
+            background: #0066ff;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .stat-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .stat-icon {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.05);
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        .stat-bar-container {
+            flex-grow: 1;
+            height: 6px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .stat-bar-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .stat-value {
+            font-size: 12px;
+            font-weight: 700;
+            width: 35px;
+            text-align: right;
+        }
+
+        /* Cores de status */
+        .fuel-color { color: #00ff95; }
+        .fuel-bg { background-color: #00ff95; }
+        .engine-color { color: #ffc400; }
+        .engine-bg { background-color: #ffc400; }
+        .body-color { color: #ff3c00; }
+        .body-bg { background-color: #ff3c00; }
+
+    </style>
+</head>
+<body id="app-body">
+    <!-- Test Box to verify NUI is actually loaded by FiveM -->
+    <div style="position: absolute; top: 10px; left: 10px; width: 50px; height: 50px; background: red; z-index: 9999; border: 2px solid white; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold;">NUI OK</div>
+
+    <div id="tags-container"></div>
+
+    <script>
+        console.log("Showroom Tags NUI Loaded");
+
+        window.addEventListener('message', (event) => {
+            const data = event.data;
+            if (data.action === 'updateTags') {
+                renderTags(data.tags);
+            } else if (data.action === 'clearTags') {
+                document.getElementById('tags-container').innerHTML = '';
+            }
+        });
+
+        function renderTags(tags) {
+            const container = document.getElementById('tags-container');
+            let html = '';
+
+            for (let i = 0; i < tags.length; i++) {
+                const tag = tags[i];
+                if (!tag.visible) continue;
+
+                // Normalize levels
+                const fuelLevel = Math.floor(tag.fuel);
+                const engineLevel = Math.floor(tag.engine / 10);
+                const bodyLevel = Math.floor(tag.body / 10);
+
+                html += `
+                <div class="tag-container" style="left: ${tag.x * 100}%; top: ${tag.y * 100}%; opacity: ${tag.opacity}; transform: translate(-50%, -100%) scale(${tag.scale});">
+                    <div class="tag-card">
+                        <div class="tag-header">
+                            <h1 class="tag-title">${tag.label}</h1>
+                            <span class="tag-plate">${tag.plate}</span>
+                        </div>
+
+                        <div class="stat-row">
+                            <div class="stat-icon fuel-color"><i class="fa-solid fa-gas-pump"></i></div>
+                            <div class="stat-bar-container">
+                                <div class="stat-bar-fill fuel-bg" style="width: ${fuelLevel}%"></div>
+                            </div>
+                            <span class="stat-value">${fuelLevel}%</span>
+                        </div>
+
+                        <div class="stat-row">
+                            <div class="stat-icon engine-color"><i class="fa-solid fa-engine"></i></div>
+                            <div class="stat-bar-container">
+                                <div class="stat-bar-fill engine-bg" style="width: ${engineLevel}%"></div>
+                            </div>
+                            <span class="stat-value">${engineLevel}%</span>
+                        </div>
+
+                        <div class="stat-row">
+                            <div class="stat-icon body-color"><i class="fa-solid fa-car-burst"></i></div>
+                            <div class="stat-bar-container">
+                                <div class="stat-bar-fill body-bg" style="width: ${bodyLevel}%"></div>
+                            </div>
+                            <span class="stat-value">${bodyLevel}%</span>
+                        </div>
+                    </div>
+                </div>`;
+            }
+
+            container.innerHTML = html;
+        }
+    </script>
+</body>
+</html>

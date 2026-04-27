@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: red;
+            overflow: hidden;
+            width: 1920px;
+            height: 1080px;
+        }
+
+        #test-box {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(255, 0, 0, 0.8);
+            border: 5px solid white;
+            width: 400px;
+            height: 200px;
+            color: white;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 20px;
+        }
+
+        h1 { margin: 0; font-size: 40px; }
+        p { margin: 5px; font-size: 24px; }
+    </style>
+</head>
+<body>
+    <div id="test-box">
+        <h1>CARREGANDO...</h1>
+        <p id="plate-debug">Aguardando Mensagem</p>
+    </div>
+
+    <script>
+        console.log("DUI DEBUG: HTML Iniciado");
+        
+        window.addEventListener('message', function (event) {
+            console.log("DUI DEBUG: Mensagem Recebida", JSON.stringify(event.data));
+            if (event.data.action == "addInfo") {
+                const box = document.getElementById('test-box');
+                const plateText = document.getElementById('plate-debug');
+                
+                box.style.backgroundColor = "rgba(41, 41, 41, 0.95)";
+                box.innerHTML = `
+                    <h1 style="color: #00ff95;">${event.data.label}</h1>
+                    <p>Placa: ${event.data.plate}</p>
+                    <p>Combustível: ${event.data.fuelLevel}%</p>
+                `;
+                console.log("DUI DEBUG: UI Atualizada para " + event.data.plate);
+            }
+        });
+    </script>
+</body>
+</html>

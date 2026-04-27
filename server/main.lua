@@ -84,7 +84,7 @@ end)
 RegisterNetEvent("rhd_garage:server:destroyVehicle", function(plate)
     if GetInvokingResource() then return end
     print("^1[rhd_garage] Sincronizando destruição no banco de dados para a placa: " .. plate .. "^7")
-    MySQL.update('UPDATE player_vehicles SET engine = 0, body = 0, state = 0 WHERE plate = ? OR fakeplate = ?', {plate, plate})
+    MySQL.update('UPDATE player_vehicles SET engine = 0, body = 0, state = 3 WHERE plate = ? OR fakeplate = ?', {plate, plate})
 end)
 
 RegisterNetEvent("rhd_garage:server:saveGarageZone", function(fileData)

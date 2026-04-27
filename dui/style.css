@@ -1,0 +1,150 @@
+:root {
+    --bg-main: rgba(10, 10, 10, 0.92);
+    --accent: #00ff9d;
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.6);
+    --border-color: rgba(255, 255, 255, 0.1);
+    
+    --fuel-color: #2ecc71;
+    --engine-color: #f1c40f;
+    --body-color: #e74c3c;
+    --track-color: rgba(255, 255, 255, 0.08);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    width: 1024px;
+    height: 640px;
+    background-color: transparent;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    overflow: hidden;
+}
+
+.card {
+    width: 900px; /* Use more of the resolution */
+    background: var(--bg-main);
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    padding: 50px;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.8);
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    display: flex;
+    align-items: flex-start;
+    gap: 30px;
+    margin-bottom: 50px;
+}
+
+.brand-box {
+    background: var(--accent);
+    color: #000;
+    font-weight: 900;
+    font-size: 24px;
+    padding: 8px 18px;
+    border-radius: 6px;
+    margin-top: 5px;
+}
+
+.title-section h1 {
+    font-size: 48px;
+    font-weight: 800;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    margin-bottom: 15px;
+}
+
+.plate-box {
+    background: #fff;
+    color: #111;
+    padding: 6px 20px;
+    border-radius: 6px;
+    display: inline-block;
+}
+
+#vehicle-plate {
+    font-family: monospace;
+    font-weight: 800;
+    font-size: 26px;
+    letter-spacing: 3px;
+}
+
+.stats-container {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+}
+
+.stat-row {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.stat-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.stat-label {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    color: var(--text-secondary);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 2px;
+}
+
+/* Bigger icons for visibility */
+.icon {
+    width: 24px;
+    height: 24px;
+    fill: var(--accent);
+}
+
+.stat-value {
+    font-size: 28px;
+    font-weight: 800;
+}
+
+.progress-track {
+    width: 100%;
+    height: 10px;
+    background: var(--track-color);
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 20px;
+}
+
+.progress-fill.fuel { background: var(--fuel-color); }
+.progress-fill.engine { background: var(--engine-color); }
+.progress-fill.body { background: var(--body-color); }
+
+.footer {
+    margin-top: 60px;
+    text-align: center;
+}
+
+.status-text {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: 5px;
+}

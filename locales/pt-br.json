@@ -131,7 +131,8 @@
         "in": "Na Garagem",
         "out": "Fora da Garagem",
         "insurance": "No Seguro",
-        "confiscated": "Confiscado pela Polícia"
+        "confiscated": "Confiscado pela Polícia",
+        "destroyed": "Veículo Destruído (Perda Total)"
     },
     "command": {
         "admin": {

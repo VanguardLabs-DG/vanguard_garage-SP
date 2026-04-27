@@ -23,6 +23,18 @@ fw = {
     playerLoaded = false
 }
 
+if not isServer then
+    local PlayerData = QBCore.Functions.GetPlayerData()
+    if PlayerData and PlayerData.citizenid then
+        local charinfo = PlayerData.charinfo
+        fw.player.name = charinfo.firstname .. " " .. charinfo.lastname
+        fw.player.money = PlayerData.money
+        fw.player.job = { name = PlayerData.job.name, grade = PlayerData.job.grade.level }
+        fw.player.gang = { name = PlayerData.gang.name, grade = PlayerData.gang.grade.level }
+        fw.playerLoaded = true
+    end
+end
+
 --- Get Money
 ---@param type string
 ---@return integer
@@ -95,6 +107,14 @@ local function loadCacheData()
     ExecuteCommand("reloadcache")
 end
 
+if not isServer then
+    AddEventHandler('onClientResourceStart', function(resource)
+        if resource == GetCurrentResourceName() then
+            loadCacheData()
+        end
+    end)
+end
+
 if Config.InDevelopment then
     RegisterCommand("loaded", function ()
         fw.playerLoaded = true
@@ -125,17 +145,6 @@ if Config.InDevelopment then
 
         TriggerServerEvent('reloadcache:server')
     end, false)
-
-    if not IsDuplicityVersion() then
-        AddEventHandler('onClientResourceStart', function(resource)
-            if resource == GetCurrentResourceName() then
-                loadCacheData()
-            end
-        end)
-        AddEventHandler('QBCore:Client:OnPlayerLoaded', function()
-            loadCacheData()
-        end)
-    end
 end
 
 if isServer then
@@ -391,7 +400,7 @@ if isServer then
         if filter and filter.impound then
             format = [[
                 SELECT vehicle, vehicle_name, mods, state, depotprice, plate, fakeplate, fuel, engine, body, deformation
-                FROM player_vehicles WHERE citizenid = ? AND state = 0
+                FROM player_vehicles WHERE citizenid = ? AND (state = 0 OR state = 3)
             ]]
             value = {Identifier}
         elseif Config.VehiclesInAllGarages then
@@ -497,6 +506,8 @@ if isServer then
                     stateText = vehFuncS.govbp(plate) and locale('status.out') or locale('status.insurance')
                 elseif v.state == 2 then
                     stateText = locale('status.confiscated')
+                elseif v.state == 3 then
+                    stateText = locale('status.destroyed')
                 end
 
                 local inInsurance = v.state == 0
@@ -565,4 +576,19 @@ if isServer then
             xPlayer[idstr] = p.PlayerData
         end)
     end
+
+    AddEventHandler('onResourceStart', function(resource)
+        if resource ~= GetCurrentResourceName() then return end
+        Wait(1000)
+        local players = QBCore.Functions.GetPlayers()
+        for i = 1, #players do
+            local src = players[i]
+            local p = QBCore.Functions.GetPlayer(src)
+            if p then
+                local idstr = tostring(src)
+                xPlayer[idstr] = p.PlayerData
+                lib.print.info(("Restoring cache for %s"):format(GetPlayerName(src)))
+            end
+        end
+    end)
 end

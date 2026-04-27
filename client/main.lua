@@ -136,14 +136,24 @@ local function spawnvehicle(data)
             TriggerEvent("vehiclekeys:client:SetOwner", plate)
         end
 
-        -- Ligar o carro e faróis (Farol alto para impacto visual)
-        SetVehicleEngineOn(vehEntity, true, true, false)
-        SetVehicleLights(vehEntity, 2) -- Ligar faróis
-        SetVehicleFullbeam(vehEntity, true) -- Farol alto para o cinematic ficar mais bonito
-        
         -- Colocar o jogador dentro do carro IMEDIATAMENTE (durante o blackout)
         if Config.SpawnInVehicle then
             TaskWarpPedIntoVehicle(cache.ped, vehEntity, -1)
+        end
+
+        -- Ligar o carro e faróis (Farol alto para impacto visual) - AGORA COM O PLAYER DENTRO
+        SetVehicleNeedsToBeHotwired(vehEntity, false)
+        SetVehicleEngineOn(vehEntity, true, true, false)
+        SetVehicleLights(vehEntity, 2) -- Ligar faróis
+        SetVehicleFullbeam(vehEntity, true) -- Farol alto para o cinematic ficar mais bonito
+
+        -- HIJACK mri_Qcarkeys: Forçar chave no contato e motor ligado
+        if GetResourceState('mri_Qcarkeys') == 'started' then
+            local plate = GetVehicleNumberPlateText(vehEntity)
+            Entity(vehEntity).state:set('keysIn', true, true) -- Chave no contato
+            TriggerEvent('mm_carkeys:client:addtempkeys', plate) -- Adiciona como chave ativa
+            TriggerServerEvent('mm_carkeys:server:removevehiclekeys', plate) -- Remove do inventário (está no carro)
+            SetVehicleEngineOn(vehEntity, true, true, false)
         end
 
         -- Criar a câmera cinematográfica (ela mesma cuidará do primeiro FadeIn)
@@ -494,6 +504,17 @@ local function openMenu(data)
         title = data.garage,
         options = {}
     }
+
+    if not data.impound and Config.Showrooms.Config.Enable then
+        menuData.options[#menuData.options + 1] = {
+            title = "VISUALIZAR SHOWROOM",
+            icon = "eye",
+            iconAnimation = Config.IconAnimation,
+            onSelect = function()
+                exports.rhd_garage:openShowRoom(data)
+            end
+        }
+    end
     
     if data.vehicles then
         menuData = listAddedVehicles(data, menuData)
@@ -767,3 +788,15 @@ end)
 --- exports
 exports('openMenu', openMenu)
 exports('storeVehicle', storeVeh)
+
+RegisterNetEvent('rhd_garage:client:takeOutFromShowroom', function(plate, coords)
+    local vehData = lib.callback.await('rhd_garage:cb_server:getvehiclePropByPlate', false, plate)
+    if vehData then
+        spawnvehicle({
+            model = vehData.model,
+            plate = plate,
+            coords = coords,
+            garage = vehData.garage
+        })
+    end
+end)
