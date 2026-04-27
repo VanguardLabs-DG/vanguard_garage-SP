@@ -60,25 +60,33 @@ CreateThread(function()
 end)
 
 local function spawnVehInShowRoom(vehicleData, coords)
-    local mods = vehicleData.vehicle
-    local model = vehicleData.model
-    local modelHash = type(model) == "number" and model or joaat(model)
+    local mods = vehicleData.mods or vehicleData.vehicle
+    local model = vehicleData.hash or vehicleData.model
+    local modelHash = tonumber(model) or joaat(model)
     
-    lib.requestModel(modelHash)
+    lib.requestModel(modelHash, 15000)
     
     local vehicle = CreateVehicle(modelHash, coords.x, coords.y, coords.z, coords.w, false, false)
     SetEntityAlpha(vehicle, 0, false)
     
-    if mods and next(mods) then
-        vehFunc.svp(vehicle, mods)
+    if mods then
+        local decodedMods = type(mods) == "string" and json.decode(mods) or mods
+        if decodedMods then
+            vehFunc.svp(vehicle, decodedMods)
+        end
     end
+    
+    SetEntityHeading(vehicle, coords.w)
+    SetVehicleOnGroundProperly(vehicle)
+    SetEntityInvincible(vehicle, true)
+    SetVehicleDoorsLocked(vehicle, 1) -- Destrancado
     
     fadeInEntity(vehicle)
     
     -- Prepare data for DUI
     local data = {
         plate = vehicleData.plate,
-        label = vehicleData.vehicle_name or fw.gvn(model),
+        label = vehicleData.vehicle_name or fw.gvn(modelHash),
         fuel = vehicleData.fuel or 100,
         engine = vehicleData.engine or 1000,
         body = vehicleData.body or 1000
@@ -131,18 +139,26 @@ end
 function openShowRoom(data)
     if not Config.Showrooms then return end
     
+    local level = lib.callback.await('rhd_garage:server:getGarageLevel', false) or 1
+    local levelConfig = Config.GarageLevels[level]
+    if not levelConfig then level = 1 levelConfig = Config.GarageLevels[1] end
+    
+    currentShowroomType = levelConfig.showroom
+    
     garageBeforeShowroom = data.garage
-    currentShowroomType = (data.type and data.type[1]) or "car"
-    if not Config.Showrooms[currentShowroomType] then currentShowroomType = "car" end
     
     DoScreenFadeOut(400)
     Wait(1000)
     
     TriggerServerEvent("rhd_garage:server:soloSession")
     
-    -- Optional IPLs
-    RequestIpl("vw_casino_garage")
-    RequestIpl("sm_smugdlc_interior_priority")
+    -- Load level-specific IPLs
+    if level == 1 or level == 2 then
+        RequestIpl("v_garages")
+    elseif level == 3 then
+        RequestIpl("vw_casino_garage")
+        RequestIpl("sm_smugdlc_interior_priority")
+    end
     
     Wait(1500)
     

@@ -720,6 +720,10 @@ local function storeVeh(data)
         vehicle_name = Entity(vehicle).state.vehlabel
     })
     
+    if type(isOwned) == "table" and isOwned.error then
+        return utils.notify(isOwned.error, 'error', 10000)
+    end
+    
     if not isOwned and not data.vehicles then return
         utils.notify(locale('notify.error.not_owned'), 'error')
     end

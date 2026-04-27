@@ -18,7 +18,9 @@ function gzf.authorize(key, val)
 end
 
 function gzf.refresh ()
-    if not GarageZone or type(GarageZone) ~= "table" then return end
+    if not GarageZone or type(GarageZone) ~= "table" then 
+        return 
+    end
 
     gb.refresh(GarageZone)
     if next(CreatedZone) then

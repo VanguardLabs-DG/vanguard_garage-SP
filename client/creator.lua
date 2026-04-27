@@ -547,17 +547,23 @@ local function listGarage()
 end
 
 CreateThread(function ()
+    print("^3[rhd_garage] Iniciando loop de verificação de player...^7")
+    local attempts = 0
     while not fw.playerLoaded do
-        lib.print.warn("Wait for the garage data to finish loading")
+        attempts = attempts + 1
+        if attempts % 5 == 0 then
+            lib.print.warn("Aguardando carregamento dos dados do jogador... (Tentativa " .. attempts .. ")")
+        end
         if Config.InDevelopment then
-            lib.print.info('Use the /loaded and /reloadcache commands to load garage and player data')
+            -- lib.print.info('Use the /loaded and /reloadcache commands to load garage and player data')
         end
         Wait(1000)
     end
     
     if fw.playerLoaded then
+        print("^2[rhd_garage] Player carregado! Chamando gzf.refresh()...^7")
         gzf.refresh()
-        lib.print.info("Garage data has been successfully loaded")
+        lib.print.info("Dados da garagem carregados com sucesso.")
     end
 end)
 

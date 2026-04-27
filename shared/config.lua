@@ -77,12 +77,37 @@ Config.ImpoundPrice = {
     [21] = 0      --- Price for trains (not applicable)
 }
 
+-- Garage Level System
+Config.GarageLevels = {
+    [1] = { slots = 2,  showroom = "level1" },
+    [2] = { slots = 6,  showroom = "level2" },
+    [3] = { slots = 10, showroom = "level3" },
+}
+
 Config.Showrooms = {
     Config = {
         Enable = true,
         AllowOnlyInPrivateGarages = false,
     },
-    car = {
+    level1 = { -- 2 Car Garage
+        EntranceCoords = vec4(173.2903, -1003.6, -99.65707, 0.0),
+        ParkingSlots = {
+            { Coords = vec4(171.2903, -1003.6, -99.65707, 0.0) }, -- Vaga 1 (Esquerda)
+            { Coords = vec4(175.2903, -1003.6, -99.65707, 0.0) }, -- Vaga 2 (Direita)
+        }
+    },
+    level2 = { -- 6 Car Garage
+        EntranceCoords = vec4(197.8153, -1002.293, -99.65749, 0.0),
+        ParkingSlots = {
+            { Coords = vec4(193.38, -1004.22, -99.42, 335.76) },
+            { Coords = vec4(195.95, -1004.22, -99.42, 335.76) },
+            { Coords = vec4(198.52, -1004.22, -99.42, 335.76) },
+            { Coords = vec4(201.09, -1004.22, -99.42, 335.76) },
+            { Coords = vec4(203.66, -1004.22, -99.42, 335.76) },
+            { Coords = vec4(206.23, -1004.22, -99.42, 335.76) },
+        }
+    },
+    level3 = { -- Casino Garage (Old "car")
         EntranceCoords = vec4(1295.2756, 261.7921, -50.0573, 174.5392),
         ParkingSlots = {
             { Coords = vec4(1281.2789, 240.9465, -49.4692, 243.5022) },

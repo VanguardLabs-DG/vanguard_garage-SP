@@ -1,4 +1,43 @@
-if not lib.checkDependency('ox_lib', '3.23.1') then error('This resource requires ox_lib version 3.23.1') end
+--- Garage Level System
+local tempVehicle = {}
+
+local function getPlayerGarageLevel(src)
+    local player = exports.qbx_core:GetPlayer(src)
+    if not player then return 1 end
+    return player.PlayerData.metadata['garage_level'] or 1
+end
+
+local function setPlayerGarageLevel(src, level)
+    local player = exports.qbx_core:GetPlayer(src)
+    if not player then return false end
+    level = tonumber(level)
+    if not Config.GarageLevels[level] then return false end
+    player.Functions.SetMetaData('garage_level', level)
+    return true
+end
+
+exports('GetGarageLevel', getPlayerGarageLevel)
+exports('SetGarageLevel', setPlayerGarageLevel)
+
+lib.addCommand('setgaragelevel', {
+    help = 'Definir nível de garagem do player',
+    restricted = 'group.admin',
+    params = {
+        { name = 'id', help = 'ID do player', type = 'number' },
+        { name = 'level', help = 'Nível (1-3)', type = 'number' }
+    }
+}, function(source, args)
+    if setPlayerGarageLevel(args.id, args.level) then
+        utils.notify(source, ("Nível de garagem do ID %s definido para %s"):format(args.id, args.level), "success")
+        utils.notify(args.id, ("Seu nível de garagem foi alterado para %s"):format(args.level), "info")
+    else
+        utils.notify(source, "ID ou Nível inválido", "error")
+    end
+end)
+
+lib.callback.register('rhd_garage:server:getGarageLevel', function(src)
+    return getPlayerGarageLevel(src)
+end)
 
 --- callback
 lib.callback.register('rhd_garage:cb_server:removeMoney', function(src, type, amount)
@@ -6,6 +45,15 @@ lib.callback.register('rhd_garage:cb_server:removeMoney', function(src, type, am
 end)
 
 lib.callback.register('rhd_garage:cb_server:getvehowner', function (src, plate, shared, pleaseUpdate)
+    -- Check Garage Capacity
+    local level = getPlayerGarageLevel(src)
+    local maxSlots = Config.GarageLevels[level].slots
+    
+    local vehicles = fw.gpvbg(src, nil, { shared = false, impound = false }) -- Use Config.VehiclesInAllGarages logic
+    if #vehicles >= maxSlots then
+        return { error = "Sua garagem está cheia! (Nível " .. level .. ": " .. maxSlots .. " slots)" }
+    end
+
     return fw.gvobp(src, plate, {
         owner = shared
     }, pleaseUpdate)

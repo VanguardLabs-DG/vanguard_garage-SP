@@ -1,4 +1,4 @@
-if GetResourceState('qb-core') == "missing" then return end
+if GetResourceState('qb-core') == "missing" and GetResourceState('qbx_core') == "missing" then return end
 
 QBCore = exports['qb-core']:GetCoreObject()
 local isServer = IsDuplicityVersion()
@@ -24,15 +24,27 @@ fw = {
 }
 
 if not isServer then
-    local PlayerData = QBCore.Functions.GetPlayerData()
-    if PlayerData and PlayerData.citizenid then
-        local charinfo = PlayerData.charinfo
-        fw.player.name = charinfo.firstname .. " " .. charinfo.lastname
-        fw.player.money = PlayerData.money
-        fw.player.job = { name = PlayerData.job.name, grade = PlayerData.job.grade.level }
-        fw.player.gang = { name = PlayerData.gang.name, grade = PlayerData.gang.grade.level }
-        fw.playerLoaded = true
-    end
+    -- Vacina: Inicialização em Thread para não travar no ensure
+    CreateThread(function()
+        local attempts = 0
+        while not QBCore and attempts < 100 do
+            Wait(10)
+            QBCore = exports['qb-core']:GetCoreObject()
+            attempts = attempts + 1
+        end
+
+        if QBCore then
+            local PlayerData = QBCore.Functions.GetPlayerData()
+            if PlayerData and PlayerData.citizenid then
+                local charinfo = PlayerData.charinfo
+                fw.player.name = charinfo.firstname .. " " .. charinfo.lastname
+                fw.player.money = PlayerData.money
+                fw.player.job = { name = PlayerData.job.name, grade = PlayerData.job.grade.level }
+                fw.player.gang = { name = PlayerData.gang.name, grade = PlayerData.gang.grade.level }
+                fw.playerLoaded = true
+            end
+        end
+    end)
 end
 
 --- Get Money
