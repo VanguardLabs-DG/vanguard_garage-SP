@@ -53,7 +53,8 @@ local function previwVehicle(veh, coords, label)
                     local newVeh = utils.createPlyVeh(model, coords)
                     TaskWarpPedIntoVehicle(cache.ped, newVeh, -1)
                     SetVehicleFixed(newVeh)
-                    SetVehicleNumberPlateText(newVeh, prefixPlate .. ' ' .. lib.string.random('1111'))
+                    -- Formato Mercosul (7 chars): Prefix (3) + 1A11 (4) = POL1A22
+                    SetVehicleNumberPlateText(newVeh, prefixPlate .. lib.string.random('1A11'))
                     utils.setFuel(newVeh, 100)
 
                     local data = {

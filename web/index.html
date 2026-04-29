@@ -217,18 +217,21 @@
         .veh-plate-pill { 
             position: relative;
             display: inline-flex; align-items: center; justify-content: center;
-            width: 140px; height: 46px;
+            width: 135px; height: 46px;
             filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));
         }
-        .veh-plate-pill img { width: 100%; height: 100%; object-fit: contain; }
+        .veh-plate-pill img { 
+            width: 100%; height: 100%; object-fit: contain; 
+            image-rendering: -webkit-optimize-contrast;
+        }
         .veh-plate-pill span {
             position: absolute;
-            top: 58%; /* Precision centering in the white area */
+            top: 57%; /* Precision centering in the white area */
             left: 50%;
             transform: translate(-50%, -50%);
             color: #111;
-            font-size: 15px; font-weight: 800;
-            letter-spacing: 1.5px;
+            font-size: 19px; font-weight: 800;
+            letter-spacing: 2.5px;
             text-transform: uppercase;
             text-shadow: 0 0 1px rgba(0,0,0,0.1);
         }
