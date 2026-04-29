@@ -1,4 +1,4 @@
-print("^5[rhd_garage] ^7Showroom iniciado.")
+print("^5[vanguard_garage] ^7Showroom iniciado.")
 
 local isInShowRoom = false
 local createdVehiclesInShowroom = {}
@@ -17,16 +17,54 @@ local function fadeInEntity(entity)
     SetEntityAlpha(entity, 255, false)
 end
 
--- DUI Management & Render Thread
+-- DUI Management Thread (100ms)
+CreateThread(function()
+    local lastDUIUpdate = 0
+    local DUI_UPDATE_INTERVAL = 100
+    
+    while true do
+        if isInShowRoom and #createdVehiclesInShowroom > 0 then
+            local currentTime = GetGameTimer()
+            
+            if currentTime - lastDUIUpdate >= DUI_UPDATE_INTERVAL then
+                lastDUIUpdate = currentTime
+                
+                local playerCoords = GetEntityCoords(cache.ped)
+
+                if _G.ShowroomDUI then
+                    for i = 1, #createdVehiclesInShowroom do
+                        local vehicle = createdVehiclesInShowroom[i]
+                        if DoesEntityExist(vehicle) then
+                            local vehCoords = GetEntityCoords(vehicle)
+                            local distanceToPlayer = #(playerCoords - vehCoords)
+                            
+                            -- Management logic: Create or Destroy
+                            if distanceToPlayer < 8.0 then
+                                local data = vehicleDataCache[vehicle]
+                                if data then
+                                    ShowroomDUI.Create(vehicle, data)
+                                end
+                            elseif distanceToPlayer > 12.0 then
+                                ShowroomDUI.DestroyVehicleDUI(vehicle)
+                            end
+                        end
+                    end
+                end
+            end
+            Wait(DUI_UPDATE_INTERVAL)
+        else
+            Wait(1000)
+        end
+    end
+end)
+
+-- DUI Rendering Thread (0ms) - MUST BE SEPARATE FOR STABILITY
 CreateThread(function()
     while true do
-        local sleep = 1000
         if isInShowRoom and #createdVehiclesInShowroom > 0 then
-            sleep = 0
-            local playerPed = cache.ped
-            local playerCoords = GetEntityCoords(playerPed)
+            local playerCoords = GetEntityCoords(cache.ped)
+            local rendered = false
 
-            -- Safety check for ShowroomDUI existence
             if _G.ShowroomDUI then
                 for i = 1, #createdVehiclesInShowroom do
                     local vehicle = createdVehiclesInShowroom[i]
@@ -34,28 +72,26 @@ CreateThread(function()
                         local vehCoords = GetEntityCoords(vehicle)
                         local distanceToPlayer = #(playerCoords - vehCoords)
                         
-                        -- Smart DUI Creation/Destruction
-                        if distanceToPlayer < 8.0 then
-                            local data = vehicleDataCache[vehicle]
-                            if data then
-                                ShowroomDUI.Create(vehicle, data)
-                                
-                                local min, max = GetModelDimensions(GetEntityModel(vehicle))
-                                local roofWorld = vector3(vehCoords.x, vehCoords.y, vehCoords.z + max.z + 0.9)
-                                
-                                -- Render the card
-                                ShowroomDUI.Render(vehicle, roofWorld)
-                            end
-                        elseif distanceToPlayer > 12.0 then
-                            ShowroomDUI.DestroyVehicleDUI(vehicle)
+                        -- Render only if within hysteresis range
+                        if distanceToPlayer < 12.0 then
+                            local min, max = GetModelDimensions(GetEntityModel(vehicle))
+                            local roofWorld = vector3(vehCoords.x, vehCoords.y, vehCoords.z + max.z + 0.9)
+                            
+                            ShowroomDUI.Render(vehicle, roofWorld)
+                            rendered = true
                         end
                     end
                 end
-            else
-                sleep = 500 -- Wait for DUI handler to load if missing
             end
+            
+            if rendered then
+                Wait(0)
+            else
+                Wait(250)
+            end
+        else
+            Wait(1000)
         end
-        Wait(sleep)
     end
 end)
 
@@ -66,7 +102,9 @@ local function spawnVehInShowRoom(vehicleData, coords)
     
     lib.requestModel(modelHash, 15000)
     
-    local vehicle = CreateVehicle(modelHash, coords.x, coords.y, coords.z, coords.w, false, false)
+    local vehicle = CreateVehicle(modelHash, coords.x, coords.y, coords.z, coords.w, true, false) -- isNetwork = true to avoid warnings
+    SetNetworkIdCanMigrate(NetworkGetNetworkIdFromEntity(vehicle), true) -- Ensure it can migrate if needed
+    SetEntityAsMissionEntity(vehicle, true, true)
     SetEntityAlpha(vehicle, 0, false)
     
     if mods then
@@ -115,7 +153,7 @@ function leaveShowRoom(plateToTakeOut)
     createdVehiclesInShowroom = {}
     vehicleDataCache = {}
     
-    TriggerServerEvent("rhd_garage:server:soloSessionLeave")
+    TriggerServerEvent("vanguard_garage:server:soloSessionLeave")
     
     if showroomExitPoint then
         showroomExitPoint:remove()
@@ -126,7 +164,7 @@ function leaveShowRoom(plateToTakeOut)
     if plateToTakeOut and returnCoords then
         SetEntityCoords(cache.ped, returnCoords.xyz)
         SetEntityHeading(cache.ped, returnCoords.w)
-        TriggerEvent('rhd_garage:client:takeOutFromShowroom', plateToTakeOut, returnCoords)
+        TriggerEvent('vanguard_garage:client:takeOutFromShowroom', plateToTakeOut, returnCoords)
     elseif returnCoords then
         SetEntityCoords(cache.ped, returnCoords.xyz)
         SetEntityHeading(cache.ped, returnCoords.w)
@@ -139,7 +177,7 @@ end
 function openShowRoom(data)
     if not Config.Showrooms then return end
     
-    local level = lib.callback.await('rhd_garage:server:getGarageLevel', false) or 1
+    local level = lib.callback.await('vanguard_garage:server:getGarageLevel', false) or 1
     local levelConfig = Config.GarageLevels[level]
     if not levelConfig then level = 1 levelConfig = Config.GarageLevels[1] end
     
@@ -150,7 +188,7 @@ function openShowRoom(data)
     DoScreenFadeOut(400)
     Wait(1000)
     
-    TriggerServerEvent("rhd_garage:server:soloSession")
+    TriggerServerEvent("vanguard_garage:server:soloSession")
     
     -- Load level-specific IPLs
     if level == 1 or level == 2 then
@@ -190,7 +228,7 @@ function openShowRoom(data)
         end
     end
     
-    local vehList = lib.callback.await('rhd_garage:cb_server:getVehicleList', false, data.garage, false, data.shared)
+    local vehList = lib.callback.await('vanguard_garage:cb_server:getVehicleList', false, data.garage, false, data.shared)
     
     local vehiclesToDisplay = {}
     if vehList then

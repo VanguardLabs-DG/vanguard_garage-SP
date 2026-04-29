@@ -27,19 +27,19 @@ end
 
 
 ---@param self table
-RegisterNetEvent("rhd_garage:radial:open", function (self)
+RegisterNetEvent("vanguard_garage:radial:open", function (self)
     if not cache.vehicle then
-        exports.rhd_garage:openMenu(self.garage)
+        exports.vanguard_garage:openMenu(self.garage)
     end
 end)
 
 ---@param self table
-RegisterNetEvent("rhd_garage:radial:store", function (self)
-    exports.rhd_garage:storeVehicle(self.garage)
+RegisterNetEvent("vanguard_garage:radial:store", function (self)
+    exports.vanguard_garage:storeVehicle(self.garage)
 end)
 
-RegisterNetEvent('rhd_garage:radial:open_policeimpound', function(self)
+RegisterNetEvent('vanguard_garage:radial:open_policeimpound', function(self)
     if not cache.vehicle then
-        exports.rhd_garage:openpoliceImpound( self.garage )
+        exports.vanguard_garage:openpoliceImpound( self.garage )
     end
 end)

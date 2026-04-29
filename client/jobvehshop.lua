@@ -38,11 +38,11 @@ local function previwVehicle(veh, coords, label)
     utils.createPreviewCam(vehPreview)
 
     lib.registerContext({
-        id = 'rhd_garage:jobvehshopAction',
+        id = 'vanguard_garage:jobvehshopAction',
         title = label,
         onBack = destroyPreviewVehicle,
         onExit = destroyPreviewVehicle,
-        menu = 'rhd_garage:jobvehshopMenu',
+        menu = 'vanguard_garage:jobvehshopMenu',
         options = {
             {
                 title = vehLabel,
@@ -65,7 +65,7 @@ local function previwVehicle(veh, coords, label)
                         props = vehFunc.gvp(newVeh),
                     }
 
-                    TriggerServerEvent('rhd_garage:server:buyVehicle', data)
+                    TriggerServerEvent('vanguard_garage:server:buyVehicle', data)
                 end,
                 metadata = {
                     Price = '$' .. lib.math.groupdigits(price, '.')
@@ -73,7 +73,7 @@ local function previwVehicle(veh, coords, label)
             },
         },
     })
-    lib.showContext('rhd_garage:jobvehshopAction')
+    lib.showContext('vanguard_garage:jobvehshopAction')
 end
 
 local function showMenu(data)
@@ -83,7 +83,7 @@ local function showMenu(data)
     end
 
     local context = {
-        id = 'rhd_garage:jobvehshopMenu',
+        id = 'vanguard_garage:jobvehshopMenu',
         title = data.label,
         options = {}
     }
@@ -102,7 +102,7 @@ local function showMenu(data)
     end
 
     lib.registerContext(context)
-    lib.showContext('rhd_garage:jobvehshopMenu')
+    lib.showContext('vanguard_garage:jobvehshopMenu')
 end
 
 CreateThread(function ()

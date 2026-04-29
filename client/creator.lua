@@ -547,7 +547,7 @@ local function listGarage()
 end
 
 CreateThread(function ()
-    print("^3[rhd_garage] Iniciando loop de verificação de player...^7")
+    print("^3[vanguard_garage] Iniciando loop de verificação de player...^7")
     local attempts = 0
     while not fw.playerLoaded do
         attempts = attempts + 1
@@ -561,15 +561,15 @@ CreateThread(function ()
     end
     
     if fw.playerLoaded then
-        print("^2[rhd_garage] Player carregado! Chamando gzf.refresh()...^7")
+        print("^2[vanguard_garage] Player carregado! Chamando gzf.refresh()...^7")
         gzf.refresh()
         lib.print.info("Dados da garagem carregados com sucesso.")
     end
 end)
 
-RegisterNetEvent('rhd_garage:client:syncConfig', function(newconfig)
+RegisterNetEvent('vanguard_garage:client:syncConfig', function(newconfig)
     GarageZone = newconfig
     gzf.refresh()
 end)
 
-RegisterNetEvent("rhd_garage:client:garagelist", listGarage)
+RegisterNetEvent("vanguard_garage:client:garagelist", listGarage)

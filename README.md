@@ -1,5 +1,5 @@
 # RHD Garage
-`rhd_garage` is an open-source project developed by the RHD team, designed to integrate with popular frameworks such as [ESX](https://github.com/esx-framework/esx_core), [QBox](https://github.com/Qbox-project/qbx_core/releases), and [QBCore](https://github.com/qbcore-framework/qb-core). This repository provides a comprehensive set of tools and resources for developers working with these frameworks, aiming to streamline and enhance the development process.
+`vanguard_garage` is an open-source project developed by the RHD team, designed to integrate with popular frameworks such as [ESX](https://github.com/esx-framework/esx_core), [QBox](https://github.com/Qbox-project/qbx_core/releases), and [QBCore](https://github.com/qbcore-framework/qb-core). This repository provides a comprehensive set of tools and resources for developers working with these frameworks, aiming to streamline and enhance the development process.
 
 # Features
 - Public Garage

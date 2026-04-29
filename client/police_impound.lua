@@ -14,7 +14,7 @@ end
 
 ---@param data GarageVehicleData
 local function spawnvehicle ( data )
-    local vehData = lib.callback.await('rhd_garage:cb_server:getvehiclePropByPlate', false, data.plate)
+    local vehData = lib.callback.await('vanguard_garage:cb_server:getvehiclePropByPlate', false, data.plate)
     if not vehData then return error('Failed to load vehicle data with number plate ' .. data.plate) end
     local vehEntity = utils.createPlyVeh(vehData.model, data.coords, false, true, vehData.mods)
     SetVehicleOnGroundProperly(vehEntity)
@@ -23,7 +23,7 @@ local function spawnvehicle ( data )
     SetVehicleBodyHealth(vehEntity, vehData.body + 0.0)
     utils.setFuel(vehEntity, vehData.fuel)
     Deformation.set(vehEntity, vehData.deformation)
-    TriggerServerEvent("rhd_garage:server:removeFromPoliceImpound", vehData.plate)
+    TriggerServerEvent("vanguard_garage:server:removeFromPoliceImpound", vehData.plate)
     TriggerEvent("vehiclekeys:client:SetOwner", utils.string.trim(vehData.plate))
 end
 
@@ -31,10 +31,10 @@ end
 local function openpoliceImpound ( garage )
     local garage = garage.label
 
-    local vehicle = lib.callback.await("rhd_garage:cb_server:policeImpound.getVehicle", false, garage)
+    local vehicle = lib.callback.await("vanguard_garage:cb_server:policeImpound.getVehicle", false, garage)
 
     local context = {
-        id = "rhd_garage:policeImpound",
+        id = "vanguard_garage:policeImpound",
         title = garage:upper(),
         onBack = deletePreviewVehicle,
         onExit = deletePreviewVehicle,
@@ -83,9 +83,9 @@ local function openpoliceImpound ( garage )
                     end
 
                     local context2 = {
-                        id = "rhd_garage:policeImpound.action",
+                        id = "vanguard_garage:policeImpound.action",
                         title = garage:upper(),
-                        menu = "rhd_garage:policeImpound",
+                        menu = "vanguard_garage:policeImpound",
                         onBack = deletePreviewVehicle,
                         onExit = deletePreviewVehicle,
                         options = {
@@ -109,7 +109,7 @@ local function openpoliceImpound ( garage )
                             iconAnimation = Config.IconAnimation,
                             onSelect = function ()
                                 deletePreviewVehicle()
-                                TriggerServerEvent("rhd_garage:server:policeImpound.sendBill", citizenid, fine, plate)
+                                TriggerServerEvent("vanguard_garage:server:policeImpound.sendBill", citizenid, fine, plate)
                             end
                         }
                     elseif paid > 0 then
@@ -119,7 +119,7 @@ local function openpoliceImpound ( garage )
                             iconAnimation = Config.IconAnimation,
                             onSelect = function ()
                                 deletePreviewVehicle()
-                                local checkkDate, day = lib.callback.await("rhd_garage:cb_server:policeImpound.cekDate", false, date)
+                                local checkkDate, day = lib.callback.await("vanguard_garage:cb_server:policeImpound.cekDate", false, date)
 
                                 local continue, takeout = false, false
 
@@ -264,7 +264,7 @@ local function impoundVehicle (vehicle)
             },
         })
         then
-            lib.callback('rhd_garage:cb_server:policeImpound.impoundveh', false, function ( success )
+            lib.callback('vanguard_garage:cb_server:policeImpound.impoundveh', false, function ( success )
                 SetEntityAsMissionEntity(vehicle, true, true)
                 DeleteVehicle(vehicle)
                 utils.notify(locale('notify.success.confiscate_vehicle', ownerName, input[3]), "success")
@@ -325,7 +325,7 @@ local function setUpTarget ( )
 end
 
 --- Client Callback
-lib.callback.register("rhd_garage:cb_client:sendFine", function ( fine )
+lib.callback.register("vanguard_garage:cb_client:sendFine", function ( fine )
     local paid, continue = false, false
 
     local alert = lib.alertDialog({
@@ -341,7 +341,7 @@ lib.callback.register("rhd_garage:cb_client:sendFine", function ( fine )
 
     if alert == "confirm" then
         utils.createMenu({
-            id = 'rhd_garage:policeImpound.payoptions',
+            id = 'vanguard_garage:policeImpound.payoptions',
             title = locale('context.insurance.pay_methode_header'):upper(),
             onExit = function ()
                 continue = true
@@ -360,7 +360,7 @@ lib.callback.register("rhd_garage:cb_client:sendFine", function ( fine )
                             return
                         end
 
-                        local success = lib.callback.await('rhd_garage:cb_server:removeMoney', false, 'cash', fine)
+                        local success = lib.callback.await('vanguard_garage:cb_server:removeMoney', false, 'cash', fine)
 
                         if success then
                             paid = true
@@ -383,7 +383,7 @@ lib.callback.register("rhd_garage:cb_client:sendFine", function ( fine )
                             return
                         end
 
-                        local success = lib.callback.await('rhd_garage:cb_server:removeMoney', false, 'bank', fine)
+                        local success = lib.callback.await('vanguard_garage:cb_server:removeMoney', false, 'bank', fine)
 
                         if success then
                             paid = true
@@ -439,7 +439,7 @@ CreateThread(function()
                             id = "open_garage_pi",
                             label = locale("garage.open"),
                             icon = "warehouse",
-                            event = "rhd_garage:radial:open_policeimpound",
+                            event = "vanguard_garage:radial:open_policeimpound",
                             args = {
                                 label = v.label,
                             }

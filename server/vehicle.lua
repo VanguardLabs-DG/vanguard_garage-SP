@@ -1,4 +1,4 @@
-if GetCurrentResourceName() ~= "rhd_garage" then return end
+if GetCurrentResourceName() ~= "vanguard_garage" then return end
 
 vehFuncS = {}
 
@@ -24,11 +24,11 @@ function vehFuncS.govbp(plate)
     return false
 end
 
-lib.callback.register('rhd_garage:cb_server:GetPlayerVehiclesForPhone', function(source)
+lib.callback.register('vanguard_garage:cb_server:GetPlayerVehiclesForPhone', function(source)
     return fw.gvfp(source)
 end)
 
-lib.callback.register('rhd_garage:cb_server:getoutsideVehicleCoords', function(_, plate, garage)
+lib.callback.register('vanguard_garage:cb_server:getoutsideVehicleCoords', function(_, plate, garage)
     local vehicle = vehFuncS.govbp(plate)
     local coords = vehicle and vehicle.exist and vehicle.coords or nil
     if not coords and garage then

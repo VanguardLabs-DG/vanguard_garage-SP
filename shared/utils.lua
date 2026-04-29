@@ -308,7 +308,7 @@ end
 function utils.createPlyVeh ( model, coords, cb, network, props )
     network = network == nil and false or network
     lib.requestModel(model, 150000)
-    local netid = lib.callback.await("rhd_garage:server:spawnVehicle", false, model, coords, props)
+    local netid = lib.callback.await("vanguard_garage:server:spawnVehicle", false, model, coords, props)
     if not netid then 
         if cb then cb(nil) end
         return 

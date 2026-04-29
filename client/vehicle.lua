@@ -3,7 +3,7 @@ vehFunc = {}
 --- Get Vehicle Info By Plate
 ---@param plate string
 function vehFunc.gvibp(plate)
-    local vehInfo = lib.callback.await('rhd_garage:cb_server:getVehicleInfoByPlate', false, plate)
+    local vehInfo = lib.callback.await('vanguard_garage:cb_server:getVehicleInfoByPlate', false, plate)
     return vehInfo and next(vehInfo) and vehInfo or false 
 end
 
@@ -45,7 +45,7 @@ end
 ---@param plate any
 ---@param garage string
 function vehFunc.tvbp(plate, garage, setPoint)
-    local coords = lib.callback.await("rhd_garage:cb_server:getoutsideVehicleCoords", false, plate, garage)
+    local coords = lib.callback.await("vanguard_garage:cb_server:getoutsideVehicleCoords", false, plate, garage)
     if not coords then return false end
     if setPoint then
         SetNewWaypoint(coords.x, coords.y)
@@ -56,7 +56,7 @@ end
 --- Get Players Vehicle For Phone
 ---@return table
 function vehFunc.gpvfp()
-    return lib.callback.await('rhd_garage:cb_server:GetPlayerVehiclesForPhone')
+    return lib.callback.await('vanguard_garage:cb_server:GetPlayerVehiclesForPhone')
 end
 
 --- Get Vehicle Properties

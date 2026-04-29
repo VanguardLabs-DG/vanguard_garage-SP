@@ -73,7 +73,7 @@ local function spawnvehicle(data)
         }
         
         if data.plate then
-            local callbackData = lib.callback.await('rhd_garage:cb_server:getvehiclePropByPlate', false, data.plate)
+            local callbackData = lib.callback.await('vanguard_garage:cb_server:getvehiclePropByPlate', false, data.plate)
             if not callbackData then
                 error('Failed to load vehicle data with number plate ' .. data.plate)
             end
@@ -126,7 +126,7 @@ local function spawnvehicle(data)
 
         Entity(vehEntity).state:set('vehlabel', vehData.vehicle_name or data.vehicle_name)
         
-        TriggerServerEvent("rhd_garage:server:updateState", {
+        TriggerServerEvent("vanguard_garage:server:updateState", {
             plate = vehData.plate or data.plate,
             state = 0,
             garage = vehData.garage or data.garage,
@@ -247,7 +247,7 @@ local function actionMenu(data)
                                         DoScreenFadeOut(0)
                                         destroyPreview(true)
                                         if fw.gm('cash') < data.depotprice then return utils.notify(locale('notify.error.not_enough_cash'), 'error') end
-                                        local success = lib.callback.await('rhd_garage:cb_server:removeMoney', false, 'cash', data.depotprice)
+                                        local success = lib.callback.await('vanguard_garage:cb_server:removeMoney', false, 'cash', data.depotprice)
                                         if success then
                                             utils.notify(locale('garage.success_pay_impound'), 'success')
                                             return spawnvehicle(data)
@@ -263,7 +263,7 @@ local function actionMenu(data)
                                         DoScreenFadeOut(0)
                                         destroyPreview(true)
                                         if fw.gm('bank') < data.depotprice then return utils.notify(locale('notify.error.not_enough_bank'), 'error') end
-                                        local success = lib.callback.await('rhd_garage:cb_server:removeMoney', false, 'bank', data.depotprice)
+                                        local success = lib.callback.await('vanguard_garage:cb_server:removeMoney', false, 'bank', data.depotprice)
                                         if success then
                                             utils.notify(locale('garage.success_pay_impound'), 'success')
                                             return spawnvehicle(data)
@@ -305,7 +305,7 @@ local function actionMenu(data)
                             price = Config.TransferVehicle.price,
                             garage = data.garage
                         }
-                        lib.callback('rhd_garage:cb_server:transferVehicle', false, function(success, information)
+                        lib.callback('vanguard_garage:cb_server:transferVehicle', false, function(success, information)
                             if not success then return
                                 utils.notify(information, "error")
                             end
@@ -349,10 +349,10 @@ local function actionMenu(data)
                         }
                         
                         if fw.gm('cash') < Config.SwapGarage.price then return utils.notify(locale("notify.error.need_money", lib.math.groupdigits(Config.SwapGarage.price, '.')), 'error') end
-                        local success = lib.callback.await('rhd_garage:cb_server:removeMoney', false, 'cash', Config.SwapGarage.price)
+                        local success = lib.callback.await('vanguard_garage:cb_server:removeMoney', false, 'cash', Config.SwapGarage.price)
                         if not success then return end
                         
-                        lib.callback('rhd_garage:cb_server:swapGarage', false, function(success)
+                        lib.callback('vanguard_garage:cb_server:swapGarage', false, function(success)
                             if not success then return
                                 utils.notify(locale("notify.error.swapgarage"), "error")
                             end
@@ -381,12 +381,12 @@ local function actionMenu(data)
                 if input then
                     if fw.gm('cash') < Config.changeNamePrice then return utils.notify(locale('notify.error.not_enough_cash'), 'error') end
                     
-                    local success = lib.callback.await('rhd_garage:cb_server:removeMoney', false, 'cash', Config.changeNamePrice)
+                    local success = lib.callback.await('vanguard_garage:cb_server:removeMoney', false, 'cash', Config.changeNamePrice)
                     if success then
                         CNV[data.plate] = {
                             name = input[1]
                         }
-                        TriggerServerEvent('rhd_garage:server:saveCustomVehicleName', CNV)
+                        TriggerServerEvent('vanguard_garage:server:saveCustomVehicleName', CNV)
                     end
                 end
             end
@@ -412,7 +412,7 @@ local function actionMenu(data)
                 if input then
                     if fw.gm('cash') < Config.GiveKeys.price then destroyPreview() return utils.notify('Você não possui dinheiro suficiente na carteira.', 'error') end
                     
-                    local success = lib.callback.await('rhd_garage:cb_server:removeMoney', false, 'cash', Config.GiveKeys.price)
+                    local success = lib.callback.await('vanguard_garage:cb_server:removeMoney', false, 'cash', Config.GiveKeys.price)
                     if success then
                         exports.mri_Qcarkeys:GiveKeyItem(data.plate, data.entity)
                     end
@@ -506,28 +506,20 @@ local function listAddedVehicles(data, menuData)
     return menuData
 end
 
---- Open Garage
+--- Open Garage Otimizado
 ---@param data GarageVehicleData
 local function openMenu(data)
-    print("^3[rhd_garage:DEBUG] Tentando abrir menu. Garagem: " .. tostring(data.garage) .. " | Impound: " .. tostring(data.impound) .. "^7")
-    
     if LocalPlayer.state.garageBusy then 
-        print("^1[rhd_garage:DEBUG] Abortado: LocalPlayer.state.garageBusy está TRUE^7")
-        return 
+        return utils.notify('A garagem está em uso. Aguarde.', 'error')
     end
     
     data.type = data.type or "car"
-    print("^3[rhd_garage:DEBUG] Chamando callback 'rhd_garage:cb_server:getVehicleList'...^7")
     
-    local vehData = lib.callback.await('rhd_garage:cb_server:getVehicleList', false, data.garage, data.impound, data.shared)
+    local vehData = lib.callback.await('vanguard_garage:cb_server:getVehicleList', false, data.garage, data.impound, data.shared)
     
-    if not vehData then 
-        print("^1[rhd_garage:DEBUG] Erro: Callback retornou NIL ou lista vazia.^7")
-        utils.notify(locale('notify.error.no_vehicles'), 'error')
-        return 
+    if not vehData or #vehData == 0 then 
+        return utils.notify(locale('notify.error.no_vehicles'), 'error')
     end
-    
-    print("^2[rhd_garage:DEBUG] Veículos recebidos do servidor: " .. #vehData .. "^7")
     
     local formattedVehicles = {}
     for i = 1, #vehData do
@@ -539,8 +531,6 @@ local function openMenu(data)
         
         local vehicleClass = GetVehicleClassFromName(vehModel)
         local vehicleType = utils.getCategoryByClass(vehicleClass)
-        
-        print("^3[rhd_garage:DEBUG] Processando: " .. vehName .. " (" .. plate .. ") | Tipo: " .. tostring(vehicleType) .. " | Estado: " .. tostring(gState) .. "^7")
 
         -- Camada de Segurança: Se estiver no Detran e o carro estiver num raio de 200m, oculta da lista
         if data.impound and gState == 0 then
@@ -559,7 +549,6 @@ local function openMenu(data)
             end
 
             if isNear then
-                print("^1[rhd_garage:DEBUG] Ocultando " .. plate .. " pois o veículo físico está num raio de 200m do jogador.^7")
                 goto next_vehicle
             end
         end
@@ -598,15 +587,10 @@ local function openMenu(data)
                 garage = data.garage,
                 price = price
             }
-        else
-            print("^3[rhd_garage:DEBUG] Veículo " .. vehName .. " filtrado (tipo incompatível com esta garagem: " .. tostring(vehicleType) .. ")^7")
         end
         ::next_vehicle::
     end
 
-    print("^2[rhd_garage:DEBUG] Total de veículos formatados para a UI: " .. #formattedVehicles .. "^7")
-
-    print("^5[rhd_garage:DEBUG] Enviando SendNUIMessage(open)...^7")
     SetNuiFocus(true, true)
     SendNUIMessage({
         action = "open",
@@ -614,7 +598,6 @@ local function openMenu(data)
         garage = data.garage,
         isImpound = data.impound
     })
-    print("^2[rhd_garage:DEBUG] Foco do NUI definido e mensagem enviada.^7")
 end
 
 RegisterNUICallback('closeUI', function(data, cb)
@@ -628,7 +611,7 @@ RegisterNUICallback('takeOutVehicle', function(data, cb)
 
     -- ETAPA 1: Verificação de Cooldown via Servidor (RP - GRATUITO)
     if isImpound then
-        local check = lib.callback.await('rhd_garage:server:checkRecovery', false, data.plate)
+        local check = lib.callback.await('vanguard_garage:server:checkRecovery', false, data.plate)
         
         if check and not check.allowed then
             SetNuiFocus(false, false)
@@ -678,7 +661,7 @@ RegisterNUICallback('takeOutVehicle', function(data, cb)
             return
         end
 
-        local success = lib.callback.await('rhd_garage:cb_server:removeMoney', false, paymentType, data.price)
+        local success = lib.callback.await('vanguard_garage:cb_server:removeMoney', false, paymentType, data.price)
         if not success then
             utils.notify("Erro ao processar pagamento.", 'error')
             cb('error')
@@ -691,7 +674,7 @@ RegisterNUICallback('takeOutVehicle', function(data, cb)
 
     -- ETAPA 3: Spawn do Veículo
     if garageData and Config.Showrooms.Config.Enable and not isImpound then
-        exports.rhd_garage:openShowRoom({
+        exports.vanguard_garage:openShowRoom({
             garage = data.garage,
             plate = data.plate
         })
@@ -745,7 +728,7 @@ local function storeVeh(data)
     local body = GetVehicleBodyHealth(vehicle)
     local model = prop.model
     
-    local isOwned = lib.callback.await('rhd_garage:cb_server:getvehowner', false, plate, shared, {
+    local isOwned = lib.callback.await('vanguard_garage:cb_server:getvehowner', false, plate, shared, {
         mods = prop,
         deformation = deformation,
         fuel = fuel,
@@ -786,60 +769,95 @@ local function storeVeh(data)
             DeleteEntity(vehicle)
         end
         
-        TriggerServerEvent('rhd_garage:server:updateState', {plate = plate, state = 1, garage = data.garage})
+        TriggerServerEvent('vanguard_garage:server:updateState', {plate = plate, state = 1, garage = data.garage})
         utils.notify(locale('notify.success.store_veh'), 'success')
     end
 end
 
--- Monitoramento Otimizado de Veículos (Raio de 200m / 5s)
+-- Monitoramento Otimizado de Veículos com StateBags e Sleep Dinâmico
 CreateThread(function()
-    local lastVehicle = nil
-    local lastPlate = nil
+    local trackedVehicles = {} -- Cache local de veículos monitorados
+    local lastCheck = 0
+    local reportedPlates = {} -- Track reported plates locally to prevent duplicate reports
     
     while true do
-        Wait(5000) -- Intervalo de 5 segundos
+        -- Sleep dinâmico: 5000ms quando não está em veículo, 2000ms quando está
+        local sleepTime = cache.vehicle and 2000 or 5000
+        Wait(sleepTime)
         
         local ped = cache.ped
         local playerCoords = GetEntityCoords(ped)
-        local currentVehicle = cache.vehicle
         
-        -- Atualiza o último veículo se estiver dirigindo
-        if currentVehicle then
-            lastVehicle = currentVehicle
-            lastPlate = utils.getPlate(currentVehicle)
-        end
-        
-        -- Monitora o último veículo (até 200m)
-        if lastVehicle and DoesEntityExist(lastVehicle) then
-            local vehCoords = GetEntityCoords(lastVehicle)
-            local dist = #(playerCoords - vehCoords)
-            
-            if dist < 200.0 then
-                local engine = GetVehicleEngineHealth(lastVehicle)
-                local submerged = IsEntityInWater(lastVehicle)
-                local dead = IsEntityDead(lastVehicle)
-                
-                if (submerged or dead or engine <= 0) and lastPlate then
-                    print("^1[rhd_garage] Veículo destruído detectado (Raio 200m)! Placa: " .. lastPlate .. "^7")
-                    TriggerServerEvent('rhd_garage:server:destroyVehicle', lastPlate)
-                    lastVehicle = nil
-                    lastPlate = nil
-                end
-            else
-                -- Esquece o veículo se o jogador se afastar mais de 200m
-                lastVehicle = nil
-                lastPlate = nil
+        -- Atualiza veículo atual do jogador
+        if cache.vehicle and DoesEntityExist(cache.vehicle) then
+            local plate = utils.getPlate(cache.vehicle)
+            if plate then
+                trackedVehicles[plate] = {
+                    entity = cache.vehicle,
+                    lastCheck = GetGameTimer()
+                }
             end
         end
         
-        -- Verificação de barricada/proximidade (10m) para outros veículos
-        if not currentVehicle then
-            local nearbyVeh = lib.getClosestVehicle(playerCoords, 10.0, true)
-            if nearbyVeh and nearbyVeh ~= lastVehicle then
-                if IsEntityDead(nearbyVeh) or IsEntityInWater(nearbyVeh) or GetVehicleEngineHealth(nearbyVeh) <= 0 then
+        -- Limpa veículos rastreados há mais de 30s (otimização de memória)
+        local currentTime = GetGameTimer()
+        for plate, data in pairs(trackedVehicles) do
+            if currentTime - data.lastCheck > 30000 then
+                trackedVehicles[plate] = nil
+                reportedPlates[plate] = nil -- Also clear reported status
+                goto continue_cleanup
+            end
+            
+            local veh = data.entity
+            if not DoesEntityExist(veh) then
+                trackedVehicles[plate] = nil
+                reportedPlates[plate] = nil -- Clean up reported status
+                goto continue_cleanup
+            end
+            
+            local vehCoords = GetEntityCoords(veh)
+            local dist = #(playerCoords - vehCoords)
+            
+            -- Só verifica veículos dentro de 150m (reduzido de 200m)
+            if dist < 150.0 then
+                local engine = GetVehicleEngineHealth(veh)
+                local submerged = IsEntityInWater(veh)
+                local dead = IsEntityDead(veh)
+                
+                -- Condição de destruição: submerso OU morto OU motor <= 0
+                if (submerged or dead or engine <= 0) then
+                    -- Usa cache local + StateBag para reduzir network calls
+                    if not reportedPlates[plate] and not Entity(veh).state.destroyReported then
+                        reportedPlates[plate] = true -- Mark locally immediately
+                        Entity(veh).state:set('destroyReported', true, true)
+                        TriggerServerEvent('vanguard_garage:server:destroyVehicle', plate)
+                    end
+                end
+            else
+                -- Remove do tracking se afastou mais de 150m
+                trackedVehicles[plate] = nil
+            end
+            
+            ::continue_cleanup::
+        end
+        
+        -- Verificação de proximidade apenas quando não está em veículo (10m)
+        if not cache.vehicle then
+            -- Otimização: só verifica a cada 10s quando a pé
+            if currentTime - lastCheck > 10000 then
+                lastCheck = currentTime
+                local nearbyVeh = lib.getClosestVehicle(playerCoords, 10.0, false)
+                if nearbyVeh and DoesEntityExist(nearbyVeh) then
                     local plate = utils.getPlate(nearbyVeh)
-                    if plate then
-                        TriggerServerEvent('rhd_garage:server:destroyVehicle', plate)
+                    if plate and not trackedVehicles[plate] and not reportedPlates[plate] then
+                        local engine = GetVehicleEngineHealth(nearbyVeh)
+                        if IsEntityDead(nearbyVeh) or IsEntityInWater(nearbyVeh) or engine <= 0 then
+                            if not Entity(nearbyVeh).state.destroyReported then
+                                reportedPlates[plate] = true -- Mark locally immediately
+                                Entity(nearbyVeh).state:set('destroyReported', true, true)
+                                TriggerServerEvent('vanguard_garage:server:destroyVehicle', plate)
+                            end
+                        end
                     end
                 end
             end
@@ -851,8 +869,8 @@ end)
 exports('openMenu', openMenu)
 exports('storeVehicle', storeVeh)
 
-RegisterNetEvent('rhd_garage:client:takeOutFromShowroom', function(plate, coords)
-    local vehData = lib.callback.await('rhd_garage:cb_server:getvehiclePropByPlate', false, plate)
+RegisterNetEvent('vanguard_garage:client:takeOutFromShowroom', function(plate, coords)
+    local vehData = lib.callback.await('vanguard_garage:cb_server:getvehiclePropByPlate', false, plate)
     if vehData then
         -- Correção para Garagem Nível 2: Se a rotação for diagonal (ex: 335º), 
         -- arredonda para o ângulo reto mais próximo para evitar spawn bugado no mundo.

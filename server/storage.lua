@@ -4,7 +4,7 @@ storage = {}
 ---@param garageData table<string, GarageData>
 function storage.SaveGarage(garageData)
     GarageZone = garageData
-    TriggerClientEvent('rhd_garage:client:syncConfig', -1, GarageZone)
+    TriggerClientEvent('vanguard_garage:client:syncConfig', -1, GarageZone)
     SaveResourceFile(GetCurrentResourceName(), 'data/garages.json', json.encode(GarageZone), -1)
 end
 

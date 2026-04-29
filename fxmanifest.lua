@@ -45,6 +45,7 @@ files {
     'dui/style.css',
     'dui/app.js',
     'web/index.html',
+    'web/assets/mercosul.svg',
     'web/showroom_tags/index.html',
 }
 

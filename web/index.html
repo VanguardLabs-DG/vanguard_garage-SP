@@ -30,29 +30,39 @@
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--blue); }
 
-        body, html { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; background: transparent !important; font-family: 'Sora', 'Urbanist', sans-serif; -webkit-user-select: none; user-select: none; }
+        /* ---- Optimized Layout & Animations ---- */
+        body, html { 
+            margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; 
+            background: transparent !important; font-family: 'Sora', 'Urbanist', sans-serif; 
+            -webkit-user-select: none; user-select: none; 
+            image-rendering: -webkit-optimize-contrast; /* Melhor nitidez para NUI */
+        }
         [x-cloak] { display: none !important; }
 
         .app-wrapper {
             position: fixed; inset: 0;
             display: flex; justify-content: flex-start;
             z-index: 10;
+            perspective: 1000px; /* Prepara para efeitos 3D se necessário */
         }
 
-        /* Sidebar com Fade de fundo Ultra-Longo */
         .sidebar {
-            width: 750px;
+            width: 700px; /* Reduzido levemente para otimizar preenchimento */
             height: 100vh;
             background: linear-gradient(to right, 
                 rgba(5, 5, 14, 1.0) 0%, 
-                rgba(5, 5, 14, 1.0) 380px, 
-                rgba(5, 5, 14, 0.8) 500px,
-                rgba(5, 5, 14, 0.4) 650px,
+                rgba(5, 5, 14, 1.0) 350px, 
+                rgba(5, 5, 14, 0.95) 450px,
+                rgba(5, 5, 14, 0.4) 600px,
                 transparent 100%);
             display: flex; flex-direction: column;
             position: relative;
-            animation: slideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            will-change: transform, opacity;
+            transform: translate3d(0,0,0); /* Força camada de hardware */
+            backface-visibility: hidden;
+            animation: slideIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
             overflow: hidden;
+            contain: content; /* Isola o elemento para o navegador não recalcular o resto da página */
         }
 
         .sidebar-glow {
@@ -60,33 +70,35 @@
             top: 0; left: 0;
             width: 250px;
             height: 100%;
-            background: linear-gradient(to right, rgba(0, 148, 225, 0.2) 0%, transparent 100%);
+            background: linear-gradient(to right, rgba(0, 148, 225, 0.15) 0%, transparent 100%);
             pointer-events: none;
             z-index: 1;
-            transition: 0.5s;
+            transition: background 0.4s ease;
         }
         .is-impound .sidebar-glow {
-            background: linear-gradient(to right, rgba(255, 143, 0, 0.15) 0%, transparent 100%);
+            background: linear-gradient(to right, rgba(255, 143, 0, 0.12) 0%, transparent 100%);
         }
 
         .sidebar-line {
             position: absolute;
             top: 0; left: 0;
-            width: 4px;
+            width: 3px;
             height: 100%;
             background: var(--blue);
-            box-shadow: 0 0 20px 2px var(--blue-glow);
+            box-shadow: 0 0 15px 1px var(--blue-glow);
             z-index: 10;
-            transition: 0.5s;
+            transition: background 0.4s, box-shadow 0.4s;
         }
         .is-impound .sidebar-line {
             background: var(--orange);
-            box-shadow: 0 0 20px 2px var(--orange-glow);
+            box-shadow: 0 0 15px 1px var(--orange-glow);
         }
 
-        @keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+        @keyframes slideIn { 
+            from { transform: translate3d(-100%, 0, 0); opacity: 0; } 
+            to { transform: translate3d(0, 0, 0); opacity: 1; } 
+        }
 
-        /* Conteúdo Principal */
         .content-container {
             width: 400px;
             height: 100%;
@@ -97,53 +109,62 @@
         }
 
         .header { padding: 45px 35px 25px; }
-        .logo-wordmark { font-size: 26px; font-weight: 900; letter-spacing: 4px; color: var(--blue); text-shadow: 0 0 20px var(--blue-glow); transition: 0.5s; }
-        .is-impound .logo-wordmark { color: var(--orange); text-shadow: 0 0 20px var(--orange-glow); }
-        .logo-subtitle { font-size: 10px; font-weight: 600; letter-spacing: 3px; color: var(--t3); text-transform: uppercase; margin-top: 2px; }
+        .logo-wordmark { font-size: 24px; font-weight: 900; letter-spacing: 4px; color: var(--blue); text-shadow: 0 0 15px var(--blue-glow); transition: 0.4s; }
+        .is-impound .logo-wordmark { color: var(--orange); text-shadow: 0 0 15px var(--orange-glow); }
+        .logo-subtitle { font-size: 9px; font-weight: 600; letter-spacing: 3px; color: var(--t3); text-transform: uppercase; margin-top: 2px; }
 
         .search-area { padding: 0 35px; margin-bottom: 25px; }
         .search-input-wrap {
             background: rgba(255,255,255,0.03);
             border: 1px solid var(--glass-b);
-            border-radius: 14px;
+            border-radius: 12px;
             display: flex; align-items: center; padding: 0 16px;
+            transition: border-color 0.3s;
         }
+        .search-input-wrap:focus-within { border-color: rgba(0, 148, 225, 0.4); }
         .search-input-wrap input {
-            background: transparent; border: none; padding: 16px 12px;
-            color: var(--t1); width: 100%; outline: none; font-family: inherit; font-size: 14px;
+            background: transparent; border: none; padding: 14px 10px;
+            color: var(--t1); width: 100%; outline: none; font-family: inherit; font-size: 13px;
         }
 
-        .vehicle-list { flex: 1; overflow-y: auto; padding: 0 25px 20px 35px; }
+        .vehicle-list { 
+            flex: 1; overflow-y: auto; padding: 0 25px 20px 35px; 
+            contain: layout; /* Otimiza scroll e renderização de lista */
+        }
         
-        /* Empty List State */
-        .empty-state {
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            height: 300px; text-align: center; opacity: 0.5;
-        }
-        .empty-state i { font-size: 40px; color: var(--t3); margin-bottom: 20px; }
-        .empty-state p { font-size: 12px; font-weight: 800; color: var(--t3); text-transform: uppercase; letter-spacing: 2px; line-height: 1.6; }
-
         .veh-card {
-            background: rgba(255, 255, 255, 0.02);
+            background: rgba(10, 10, 24, 0.85); /* Like ESC */
             border: 1px solid var(--glass-b);
-            border-radius: 16px; padding: 20px; margin-bottom: 12px;
-            cursor: pointer; transition: 0.3s cubic-bezier(0.2, 1, 0.2, 1);
-            display: flex; align-items: center; justify-content: space-between;
+            border-radius: 14px; padding: 16px 20px; margin-bottom: 12px;
+            cursor: pointer; transition: 0.25s cubic-bezier(0.2, 1, 0.2, 1);
+            display: flex; align-items: center; justify-content: flex-start; gap: 15px;
             position: relative;
+            backface-visibility: hidden;
+            will-change: transform, background;
         }
-        .veh-card:hover { background: rgba(255, 255, 255, 0.06); transform: translateX(8px); }
-        .veh-card.active { border-color: var(--blue); background: linear-gradient(90deg, rgba(0, 148, 225, 0.2), transparent); }
-        .is-impound .veh-card.active { border-color: var(--orange); background: linear-gradient(90deg, rgba(255, 143, 0, 0.15), transparent); }
+        .veh-card:hover { transform: translateY(-3px); border-color: rgba(255, 255, 255, 0.12); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35); }
+        .veh-card.active { border-color: rgba(0, 148, 225, 0.35); background: linear-gradient(90deg, rgba(0, 148, 225, 0.15), rgba(10, 10, 24, 0.95)); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35), 0 0 30px rgba(0, 148, 225, 0.15); }
+        .is-impound .veh-card.active { border-color: rgba(255, 143, 0, 0.35); background: linear-gradient(90deg, rgba(255, 143, 0, 0.15), rgba(10, 10, 24, 0.95)); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35), 0 0 30px rgba(255, 143, 0, 0.15); }
         
-        .veh-card.active::before { 
-            content: ''; position: absolute; left: 0; top: 25%; height: 50%; width: 4px; 
-            background: var(--blue); border-radius: 0 4px 4px 0; box-shadow: 0 0 15px var(--blue); 
-            transition: 0.5s;
+        .veh-card-icon {
+            width: 38px; height: 38px; border-radius: 10px;
+            background: rgba(0, 148, 225, 0.1); color: var(--blue);
+            display: flex; align-items: center; justify-content: center; font-size: 16px;
+            flex-shrink: 0; transition: 0.3s;
         }
-        .is-impound .veh-card.active::before { background: var(--orange); box-shadow: 0 0 15px var(--orange); }
+        .is-impound .veh-card-icon { background: rgba(255, 143, 0, 0.1); color: var(--orange); }
+        .veh-card.active .veh-card-icon { background: var(--blue-glow); color: #fff; box-shadow: 0 0 15px var(--blue-glow); }
+        .is-impound .veh-card.active .veh-card-icon { background: var(--orange-glow); color: #fff; box-shadow: 0 0 15px var(--orange-glow); }
 
-        .veh-card-info h3 { font-size: 14px; font-weight: 800; text-transform: uppercase; margin: 0; color: var(--t1); }
-        .veh-card-info p { font-size: 11px; font-weight: 600; color: var(--t3); margin: 4px 0 0; font-family: 'Urbanist'; letter-spacing: 1.5px; }
+        .veh-card.active::before { 
+            content: ''; position: absolute; left: 0; top: 25%; height: 50%; width: 3px; 
+            background: var(--blue); border-radius: 0 4px 4px 0; box-shadow: 0 0 12px var(--blue); 
+        }
+        .is-impound .veh-card.active::before { background: var(--orange); box-shadow: 0 0 12px var(--orange); }
+
+        .veh-card-info { flex: 1; }
+        .veh-card-info h3 { font-size: 14px; font-weight: 800; letter-spacing: 1px; margin: 0; color: var(--t1); text-transform: uppercase; }
+        .veh-card-info p { font-size: 10px; font-weight: 600; color: var(--t3); margin: 3px 0 0; font-family: 'Urbanist'; letter-spacing: 2px; }
 
         .price-badge {
             background: rgba(255, 143, 0, 0.1);
@@ -154,62 +175,157 @@
 
         /* Details Panel */
         .details-panel {
-            background: #05050E;
-            padding: 40px 35px;
-            border-top: 1px solid var(--glass-b);
-            border-radius: 40px 40px 0 0;
-            box-shadow: 0 -30px 80px rgba(0,0,0,1);
+            background: linear-gradient(180deg, var(--d900) 0%, #080814 100%);
+            padding: 35px 30px;
+            border-top: 2px solid var(--blue);
+            border-radius: 35px 35px 0 0;
+            box-shadow: 0 -15px 40px rgba(0, 148, 225, 0.25), 0 -25px 60px rgba(0,0,0,0.9);
             position: absolute; bottom: 0; left: 0;
             width: 100%;
             box-sizing: border-box;
             z-index: 5;
-            max-height: 70vh;
+            max-height: 65vh;
             overflow-y: auto;
-            animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            will-change: transform, opacity;
+            backface-visibility: hidden;
+            animation: slideUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+            contain: layout;
+            transition: border-color 0.4s;
         }
 
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .is-impound .details-panel { 
+            border-top-color: var(--orange); 
+            box-shadow: 0 -15px 40px rgba(255, 143, 0, 0.25), 0 -25px 60px rgba(0,0,0,0.9);
+        }
 
-        .veh-name-title { font-size: 26px; font-weight: 900; letter-spacing: -0.5px; color: var(--t1); margin: 0; }
+        @keyframes slideUp { 
+            from { transform: translate3d(0, 100%, 0); opacity: 0; } 
+            to { transform: translate3d(0, 0, 0); opacity: 1; } 
+        }
+
+        .veh-name-title { 
+            font-size: 20px; font-weight: 900; letter-spacing: -0.5px; color: var(--t1); margin: 0; 
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            max-width: 100%; display: block; text-align: center;
+        }
+        .details-header-sep {
+            height: 1px; width: 100%;
+            background: linear-gradient(90deg, transparent 5%, rgba(255, 255, 255, 0.4) 50%, transparent 95%);
+            margin: 12px 0;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.15);
+        }
         .veh-plate-pill { 
-            display: inline-block; background: var(--blue); color: #fff;
-            padding: 5px 14px; border-radius: 8px; font-size: 13px; font-weight: 900;
-            margin-top: 10px; box-shadow: 0 8px 20px var(--blue-glow);
-            transition: 0.5s;
+            position: relative;
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 140px; height: 46px;
+            filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));
         }
-        .is-impound .veh-plate-pill { background: var(--orange); box-shadow: 0 8px 20px var(--orange-glow); }
+        .veh-plate-pill img { width: 100%; height: 100%; object-fit: contain; }
+        .veh-plate-pill span {
+            position: absolute;
+            top: 58%; /* Precision centering in the white area */
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #111;
+            font-size: 15px; font-weight: 800;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            text-shadow: 0 0 1px rgba(0,0,0,0.1);
+        }
+        .is-impound .veh-plate-pill { filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5)); }
 
-        .preview-box { height: 160px; display: flex; align-items: center; justify-content: center; margin: 20px 0 35px; }
-        .preview-box img { max-width: 100%; max-height: 100%; filter: drop-shadow(0 25px 50px rgba(0,0,0,1)); }
+        .plate-section-wrap {
+            width: 100%; margin: 20px 0; padding: 18px 0;
+            display: flex; justify-content: center; align-items: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.25);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+            background: rgba(0, 148, 225, 0.12);
+            position: relative;
+            /* Creates the perfect fade at the ends for everything inside */
+            -webkit-mask-image: linear-gradient(90deg, transparent, black 15%, black 85%, transparent);
+            mask-image: linear-gradient(90deg, transparent, black 15%, black 85%, transparent);
+        }
+        .is-impound .plate-section-wrap {
+            background: rgba(255, 143, 0, 0.12);
+        }
+        .preview-box { 
+            height: 140px; display: flex; align-items: center; justify-content: center; margin: 15px 0 25px; 
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 16px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
+        }
+        .preview-box img { max-width: 90%; max-height: 90%; filter: drop-shadow(0 15px 30px rgba(0,0,0,0.5)); }
 
-        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 35px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
         .stat-card {
-            background: rgba(255,255,255,0.02);
-            border: 1px solid var(--glass-b);
-            border-radius: 18px; padding: 20px 10px; text-align: center;
+            background: rgba(10, 10, 24, 0.95);
+            border-radius: 10px; padding: 10px 12px;
+            display: flex; align-items: center; gap: 10px;
+            transition: all 0.3s cubic-bezier(0.2, 1, 0.2, 1);
+            position: relative;
+            overflow: hidden;
         }
-        .stat-label { font-size: 9px; font-weight: 800; color: var(--t3); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; display: block; }
-        .stat-icon { font-size: 18px; color: var(--blue); margin-bottom: 12px; transition: 0.5s; }
-        .is-impound .stat-icon { color: var(--orange); }
-        .stat-value { font-size: 18px; font-weight: 900; color: var(--t1); }
+        .stat-card:hover { transform: translateY(-3px); }
+        
+        .stat-icon-wrap {
+            width: 32px; height: 32px; border-radius: 8px;
+            display: flex; justify-content: center; align-items: center; font-size: 13px;
+            flex-shrink: 0;
+        }
+        
+        /* Vibrant Color Diversity for Icons & Persistent Borders */
+        .si-gold { background: rgba(255, 170, 0, 0.1); color: #FFAA00; }
+        .stat-card-gold { border: 1px solid rgba(255, 170, 0, 0.2) !important; }
+        .stat-card-gold:hover { border-color: rgba(255, 170, 0, 0.6) !important; box-shadow: 0 0 25px rgba(255, 170, 0, 0.2); }
+
+        .si-blue { background: rgba(0, 148, 225, 0.1); color: var(--blue); }
+        .stat-card-blue { border: 1px solid rgba(0, 148, 225, 0.2) !important; }
+        .stat-card-blue:hover { border-color: rgba(0, 148, 225, 0.6) !important; box-shadow: 0 0 25px rgba(0, 148, 225, 0.2); }
+
+        .si-purple { background: rgba(168, 85, 247, 0.1); color: #A855F7; }
+        .stat-card-purple { border: 1px solid rgba(168, 85, 247, 0.2) !important; }
+        .stat-card-purple:hover { border-color: rgba(168, 85, 247, 0.6) !important; box-shadow: 0 0 25px rgba(168, 85, 247, 0.2); }
+
+        .si-green { background: rgba(0, 230, 118, 0.1); color: var(--green); }
+        .stat-card-green { border: 1px solid rgba(0, 230, 118, 0.2) !important; }
+        .stat-card-green:hover { border-color: rgba(0, 230, 118, 0.6) !important; box-shadow: 0 0 25px rgba(0, 230, 118, 0.2); }
+
+        .si-red { background: rgba(255, 71, 87, 0.1); color: var(--red); }
+        .stat-card-red { border: 1px solid rgba(255, 71, 87, 0.2) !important; }
+        .stat-card-red:hover { border-color: rgba(255, 71, 87, 0.6) !important; box-shadow: 0 0 25px rgba(255, 71, 87, 0.2); }
+
+        .is-impound .stat-icon-wrap { background: rgba(255, 143, 0, 0.1); color: var(--orange); }
+        .is-impound .stat-card { border: 1px solid rgba(255, 143, 0, 0.2) !important; }
+        .is-impound .stat-card:hover { border-color: rgba(255, 143, 0, 0.6) !important; box-shadow: 0 0 25px rgba(255, 143, 0, 0.2); }
+        
+        .stat-info { flex: 1; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
+        .stat-label { font-size: 8px; font-weight: 800; color: var(--t3); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 2px; }
+        .stat-value { 
+            font-size: 14px; font-weight: 900; color: var(--t1); letter-spacing: 0.5px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
 
         .btn-withdraw {
-            width: 100%; padding: 22px; border-radius: 18px; border: none;
+            width: 100%; padding: 16px; border-radius: 12px; border: none;
             background: linear-gradient(135deg, var(--blue), #1e40af);
-            color: #fff; font-weight: 900; font-size: 15px;
-            cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px;
-            transition: 0.3s; text-transform: uppercase; letter-spacing: 2px;
-            box-shadow: 0 15px 40px var(--blue-glow);
+            color: #fff; font-weight: 900; font-size: 13px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+            transition: all 0.3s cubic-bezier(0.2, 1, 0.2, 1); text-transform: uppercase; letter-spacing: 2px;
+            box-shadow: 0 12px 30px rgba(0, 148, 225, 0.35);
+            backface-visibility: hidden;
         }
-        .btn-withdraw:hover:not(:disabled) { filter: brightness(1.2); transform: translateY(-5px); }
-        .btn-withdraw:disabled { opacity: 0.1; cursor: not-allowed; filter: grayscale(1); }
+        .btn-withdraw:hover:not(:disabled) { transform: translate3d(0, -5px, 0); box-shadow: 0 20px 45px rgba(0, 148, 225, 0.55); filter: brightness(1.15); }
+        .btn-withdraw:active { transform: translate3d(0, 0, 0); }
+        .btn-withdraw:disabled { opacity: 0.2; cursor: not-allowed; filter: grayscale(1); }
 
         .btn-impound {
             background: linear-gradient(135deg, var(--orange), #c2410c);
-            box-shadow: 0 15px 40px var(--orange-glow);
+            box-shadow: 0 15px 40px rgba(255, 143, 0, 0.4);
         }
+        .btn-impound:hover:not(:disabled) { box-shadow: 0 20px 45px rgba(255, 143, 0, 0.55); }
 
-        .hint-text { margin-top: 25px; text-align: center; font-size: 10px; font-weight: 800; color: var(--t3); letter-spacing: 2px; text-transform: uppercase; }
+        .hint-text { margin-top: 20px; text-align: center; font-size: 9px; font-weight: 800; color: var(--t3); letter-spacing: 2px; text-transform: uppercase; opacity: 0.7; }
 
         #tags-iframe { position: fixed; inset: 0; border: none; pointer-events: none; z-index: 100; }
     </style>
@@ -248,21 +364,29 @@
 
                     <template x-for="veh in filteredVehicles()" :key="veh.plate">
                         <div class="veh-card" :class="{ 'active': selected && selected.plate === veh.plate }" @click="selectVehicle(veh)">
+                            <div class="veh-card-icon">
+                                <i class="fa-solid fa-car-side"></i>
+                            </div>
                             <div class="veh-card-info">
                                 <h3 x-text="veh.name"></h3>
                                 <p x-text="veh.plate"></p>
                             </div>
                             <div class="price-badge" x-show="isImpound" x-text="'R$ ' + veh.price.toLocaleString('pt-BR')"></div>
-                            <i x-show="!isImpound" class="fa-solid fa-chevron-right" style="font-size: 14px; color: var(--glass-b)"></i>
+                            <i x-show="!isImpound" class="fa-solid fa-chevron-right" style="font-size: 14px; color: var(--glass-b); position: absolute; right: 20px;"></i>
                         </div>
                     </template>
                 </div>
 
                 <!-- Details Dialogue -->
                 <div class="details-panel" x-show="selected" x-transition:enter="slide-up">
-                    <div class="details-top">
-                        <h1 class="veh-name-title" x-text="selected?.name"></h1>
-                        <span class="veh-plate-pill" x-text="selected?.plate"></span>
+                    <!-- Vehicle Identity Section -->
+                    <h1 class="veh-name-title" x-text="selected?.name"></h1>
+                    
+                    <div class="plate-section-wrap">
+                        <div class="veh-plate-pill">
+                            <img src="nui://vanguard_garage/web/assets/mercosul.svg">
+                            <span x-text="selected?.plate"></span>
+                        </div>
                     </div>
 
                     <div class="preview-box">
@@ -277,27 +401,41 @@
                     </div>
 
                     <div class="stats-grid">
-                        <div class="stat-card">
-                            <span class="stat-label">Tanque</span>
-                            <i class="fa-solid fa-gas-pump stat-icon"></i>
-                            <span class="stat-value" x-text="Math.round(selected?.fuel || 0) + '%'"></span>
+                        <div class="stat-card" :class="isImpound ? '' : 'stat-card-gold'">
+                            <div class="stat-icon-wrap" :class="isImpound ? '' : 'si-gold'">
+                                <i class="fa-solid fa-gas-pump"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-label">Tanque</span>
+                                <span class="stat-value" x-text="Math.round(selected?.fuel || 0) + '%'"></span>
+                            </div>
                         </div>
-                        <div class="stat-card">
-                            <span class="stat-label">Motor</span>
-                            <i class="fa-solid fa-microchip stat-icon"></i>
-                            <span class="stat-value" x-text="Math.round((selected?.engine || 0)/10) + '%'"></span>
+                        <div class="stat-card" :class="isImpound ? '' : 'stat-card-purple'">
+                            <div class="stat-icon-wrap" :class="isImpound ? '' : 'si-purple'">
+                                <i class="fa-solid fa-microchip"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-label">Motor</span>
+                                <span class="stat-value" x-text="Math.round((selected?.engine || 0)/10) + '%'"></span>
+                            </div>
                         </div>
-                        <div class="stat-card">
-                            <span class="stat-label">Lataria</span>
-                            <i class="fa-solid fa-car-burst stat-icon"></i>
-                            <span class="stat-value" x-text="Math.round((selected?.body || 0)/10) + '%'"></span>
+                        <div class="stat-card" :class="isImpound ? '' : 'stat-card-blue'">
+                            <div class="stat-icon-wrap" :class="isImpound ? '' : 'si-blue'">
+                                <i class="fa-solid fa-car-burst"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-label">Lataria</span>
+                                <span class="stat-value" x-text="Math.round((selected?.body || 0)/10) + '%'"></span>
+                            </div>
                         </div>
-                        <div class="stat-card">
-                            <span class="stat-label">Status</span>
-                            <i class="fa-solid fa-circle-exclamation stat-icon" x-show="selected?.state_text === 'Quebrado'" style="color: var(--red)"></i>
-                            <i class="fa-solid fa-check-circle stat-icon" x-show="selected?.state_text !== 'Quebrado'" :style="'color:' + (selected?.state === 1 ? 'var(--green)' : 'var(--red)')"></i>
-                            
-                            <span class="stat-value" :style="'color:' + (selected?.state_text === 'Quebrado' ? 'var(--red)' : (selected?.state === 1 ? 'var(--green)' : 'var(--red)'))" x-text="selected?.state_text"></span>
+                        <div class="stat-card" :class="isImpound ? '' : (selected?.state === 1 && selected?.state_text !== 'Quebrado' ? 'stat-card-green' : 'stat-card-red')">
+                            <div class="stat-icon-wrap" :class="isImpound ? '' : (selected?.state === 1 && selected?.state_text !== 'Quebrado' ? 'si-green' : 'si-red')">
+                                <i class="fa-solid fa-shield-halved"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-label">Status</span>
+                                <span class="stat-value" :style="'color:' + (selected?.state_text === 'Quebrado' ? 'var(--red)' : (selected?.state === 1 ? 'var(--green)' : 'var(--red)'))" x-text="selected?.state_text"></span>
+                            </div>
                         </div>
                     </div>
 
@@ -320,7 +458,7 @@
     <script>
         const Nui = {
             async post(action, data = {}) {
-                const resName = GetParentResourceName ? GetParentResourceName() : 'rhd_garage';
+                const resName = GetParentResourceName ? GetParentResourceName() : 'vanguard_garage';
                 try {
                     const resp = await fetch(`https://${resName}/${action}`, {
                         method: 'POST',
@@ -356,7 +494,13 @@
                         if (item.action === 'close') this.isOpen = false;
                     });
                     document.addEventListener('keydown', (e) => {
-                        if (e.key === 'Escape' && this.isOpen) this.close();
+                        if (e.key === 'Escape' && this.isOpen) {
+                            if (this.selected) {
+                                this.selected = null;
+                            } else {
+                                this.close();
+                            }
+                        }
                     });
                 },
 

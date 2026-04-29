@@ -55,7 +55,7 @@ function gzf.refresh ()
                 end
                 if IsControlJustPressed(0, 38) and cache.vehicle then
                     if not gzf.authorize(k, v) then return end
-                    exports.rhd_garage:storeVehicle(args)
+                    exports.vanguard_garage:storeVehicle(args)
                 end
             end
 
@@ -70,9 +70,8 @@ function gzf.refresh ()
                         label = "Abrir Garagem",
                         icon = "fas fa-warehouse",
                         action = function ()
-                            print("^3[rhd_garage:DEBUG] [TARGET] Clique detectado no Ped da garagem: " .. tostring(args.garage) .. "^7")
                             args.ignoreDist = true
-                            exports.rhd_garage:openMenu(args)
+                            exports.vanguard_garage:openMenu(args)
                         end,
                     }
                 })
@@ -93,12 +92,10 @@ function gzf.refresh ()
                     end
 
                     if cache.vehicle then
-                        print("^3[rhd_garage:DEBUG] [KEY] Apertou E dentro do veículo para GUARDAR na garagem: " .. tostring(k) .. "^7")
-                        return exports.rhd_garage:storeVehicle(args)
+                        return exports.vanguard_garage:storeVehicle(args)
                     end
 
-                    print("^3[rhd_garage:DEBUG] [KEY] Apertou E a pé para ABRIR a garagem: " .. tostring(k) .. "^7")
-                    exports.rhd_garage:openMenu(args)
+                    exports.vanguard_garage:openMenu(args)
                 end
             end
 
@@ -120,7 +117,7 @@ function gzf.refresh ()
                     id = "open_garage",
                     label = v.impound and locale('garage.access_impound') or locale("garage.open"),
                     icon = "warehouse",
-                    event = "rhd_garage:radial:open",
+                    event = "vanguard_garage:radial:open",
                     args = args
                 })
 
@@ -129,7 +126,7 @@ function gzf.refresh ()
                         id = "store_veh",
                         label = locale("garage.store"),
                         icon = "parking",
-                        event = "rhd_garage:radial:store",
+                        event = "vanguard_garage:radial:store",
                         args = args
                     })
                 end
@@ -151,5 +148,5 @@ lib.onCache('vehicle', function(value)
 end)
 
 function gzf.save ( data )
-    TriggerServerEvent("rhd_garage:server:saveGarageZone", data)
+    TriggerServerEvent("vanguard_garage:server:saveGarageZone", data)
 end

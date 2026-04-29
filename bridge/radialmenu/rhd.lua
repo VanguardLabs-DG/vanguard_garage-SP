@@ -10,11 +10,11 @@ function radFunc.create(data)
         icon = data.icon,
         action = function ()
             if data.id == "open_garage" and not cache.vehicle then
-                exports.rhd_garage:openMenu(data.args)
+                exports.vanguard_garage:openMenu(data.args)
             elseif data.id == "store_veh" then
-                exports.rhd_garage:storeVehicle(data.args)
+                exports.vanguard_garage:storeVehicle(data.args)
             elseif data.id == "open_garage_pi" then
-                exports.rhd_garage:openpoliceImpound(data.args)
+                exports.vanguard_garage:openpoliceImpound(data.args)
             end
         end
     })

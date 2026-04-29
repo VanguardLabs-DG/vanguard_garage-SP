@@ -38,14 +38,14 @@ if qbHousing or psHousing or qsHousing then
                         }
     
                         if cache.vehicle then
-                            return exports.rhd_garage:storeVehicle(args)
+                            return exports.vanguard_garage:storeVehicle(args)
                         end
     
-                        exports.rhd_garage:openMenu(args)
+                        exports.vanguard_garage:openMenu(args)
                     end
                 end,
                 onEnter = function ()
-                    isOwner = lib.callback.await('rhd_garage:cb_server:getOwnedHouse', false, house)
+                    isOwner = lib.callback.await('vanguard_garage:cb_server:getOwnedHouse', false, house)
                     if not isOwner then return end
                     local dl = ('[E] - %s'):format(label)
                     utils.drawtext('show', dl:upper(), 'warehouse')
@@ -61,12 +61,12 @@ if qbHousing or psHousing or qsHousing then
     
     RegisterNetEvent('qb-garages:client:houseGarageConfig', function(garageConfig)
         Config.HouseGarages = garageConfig
-        TriggerServerEvent('rhd_garage:server:houseGarageConfig', Config.HouseGarages)
+        TriggerServerEvent('vanguard_garage:server:houseGarageConfig', Config.HouseGarages)
     end)
     
     RegisterNetEvent('qb-garages:client:addHouseGarage', function(house, garageInfo)
         Config.HouseGarages[house] = garageInfo
-        TriggerServerEvent('rhd_garage:server:addHouseGarage', house, garageInfo)
+        TriggerServerEvent('vanguard_garage:server:addHouseGarage', house, garageInfo)
     end)
     
     if psHousing or qsHousing then
@@ -77,7 +77,7 @@ if qbHousing or psHousing or qsHousing then
     
     if isServer then
         --- check house owner
-        lib.callback.register('rhd_garage:cb_server:getOwnedHouse', function(src, house)
+        lib.callback.register('vanguard_garage:cb_server:getOwnedHouse', function(src, house)
             local key = false
             local player = fw.gp(src)
             local license = player.license
@@ -97,11 +97,11 @@ if qbHousing or psHousing or qsHousing then
         end)
     
         --- Call from qb-phone
-        RegisterNetEvent('rhd_garage:server:houseGarageConfig', function(data)
+        RegisterNetEvent('vanguard_garage:server:houseGarageConfig', function(data)
             Config.HouseGarages = data
         end)
     
-        RegisterNetEvent('rhd_garage:server:addHouseGarage', function(house, garageInfo)
+        RegisterNetEvent('vanguard_garage:server:addHouseGarage', function(house, garageInfo)
             Config.HouseGarages[house] = garageInfo
         end)
     end

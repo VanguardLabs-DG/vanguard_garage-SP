@@ -1,4 +1,4 @@
-print("^5[rhd_garage] ^7DUI Handler iniciado.")
+print("^5[vanguard_garage] ^7DUI Handler iniciado.")
 
 --- @class ShowroomDUI
 local ShowroomDUI = {}
@@ -14,6 +14,9 @@ function ShowroomDUI.Create(vehicle, data)
     if activeDUIs[vehicle] then return end
     if not DoesEntityExist(vehicle) then return end
 
+    -- Lock creation to avoid race conditions during Wait()
+    activeDUIs[vehicle] = { id = -1, status = "loading" }
+
     -- Find an available slot or reuse
     local duiId = nil
     for i=1, maxDUIs do
@@ -24,7 +27,10 @@ function ShowroomDUI.Create(vehicle, data)
         if not inUse then duiId = i; break end
     end
 
-    if not duiId then return end
+    if not duiId then 
+        activeDUIs[vehicle] = nil -- Release lock if no slots
+        return 
+    end
 
     local txdName = "rhd_showroom_" .. tostring(duiId)
     local txn = "card"
@@ -39,6 +45,7 @@ function ShowroomDUI.Create(vehicle, data)
 
     if not IsDuiAvailable(dui) then 
         DestroyDui(dui)
+        activeDUIs[vehicle] = nil -- Release lock on failure
         return 
     end
 
@@ -51,14 +58,15 @@ function ShowroomDUI.Create(vehicle, data)
         dui = dui,
         txd = txdName,
         txn = txn,
-        lastData = nil
+        lastData = nil,
+        status = "ready"
     }
 
     activeDUIs[vehicle] = instance
     
     -- Delay the first update to ensure JS listener is ready
     SetTimeout(600, function()
-        if activeDUIs[vehicle] then
+        if activeDUIs[vehicle] and activeDUIs[vehicle].status == "ready" then
             ShowroomDUI.Update(vehicle, data)
         end
     end)
@@ -88,7 +96,7 @@ end
 
 function ShowroomDUI.Render(vehicle, center)
     local instance = activeDUIs[vehicle]
-    if not instance then return end
+    if not instance or instance.status ~= "ready" then return end
 
     SetDrawOrigin(center.x, center.y, center.z, 0)
 
@@ -110,7 +118,7 @@ end
 
 function ShowroomDUI.Cleanup()
     for veh, instance in pairs(activeDUIs) do
-        if instance.dui then
+        if instance.status == "ready" and instance.dui then
             DestroyDui(instance.dui)
         end
     end
@@ -118,8 +126,11 @@ function ShowroomDUI.Cleanup()
 end
 
 function ShowroomDUI.DestroyVehicleDUI(vehicle)
-    if activeDUIs[vehicle] then
-        DestroyDui(activeDUIs[vehicle].dui)
+    local instance = activeDUIs[vehicle]
+    if instance then
+        if instance.status == "ready" and instance.dui then
+            DestroyDui(instance.dui)
+        end
         activeDUIs[vehicle] = nil
     end
 end
