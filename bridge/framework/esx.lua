@@ -27,7 +27,7 @@ fw = {
 ---@param type string
 ---@return integer
 function fw.gm(type)
-    return fw.player.money?[type] or 0    
+    return (fw.player and fw.player.money and fw.player.money[type]) or 0    
 end
 
 ---@return string
@@ -127,7 +127,8 @@ if isServer then
     ---@return string | boolean
     function fw.gi(src, withLicense)
         local pData = xPlayer[tostring(src)]
-        local citizenid, license = pData?.identifier, withLicense and pData?.identifier or false
+        local citizenid = pData and pData.identifier
+        local license = withLicense and pData and pData.identifier or false
         return citizenid or false, license
     end
 
@@ -160,7 +161,8 @@ if isServer then
     ---@return string
     function fw.gn(src)
         local idstr = tostring(src)
-        local playername = xPlayer[idstr]?.name or false
+        local pData = xPlayer[idstr]
+        local playername = pData and pData.name or false
         return playername or "Unkown Players"
     end
 
@@ -306,6 +308,7 @@ if isServer then
                 ov.fuel,
                 ov.engine,
                 ov.body,
+                ov.deformation,
                 u.firstname,
                 u.lastname
             FROM owned_vehicles ov LEFT JOIN users u ON ov.owner = u.identifier WHERE ov.plate = ?   
@@ -314,10 +317,11 @@ if isServer then
         local vehicles = {}
         if results then
             local v = results
-            local mods = json.decode(v.vehicle)
+            local mods = v.vehicle and json.decode(v.vehicle) or {}
+            local deformation = v.deformation and (type(v.deformation) == 'table' and v.deformation or json.decode(v.deformation)) or nil
             vehicles = {
                 owner = {
-                    name = ("%s %s"):format(v.firstname, v.lastname),
+                    name = ("%s %s"):format(v.firstname or "", v.lastname or ""),
                     citizenid = v.owner,
                 },
                 vehicle_name = v.vehicle_name,
@@ -332,7 +336,8 @@ if isServer then
                 body = v.body,
                 state = v.stored,
                 depotprice = v.depotprice or 0,
-                balance = v.balance or 0
+                balance = v.balance or 0,
+                deformation = deformation
             }
         end
 
@@ -440,7 +445,8 @@ if isServer then
     ---@return table?
     function fw.gvfp(src)
         local idstr = tostring(src)
-        local citizenid = xPlayer[idstr]?.identifier or false
+        local pData = xPlayer[idstr]
+        local citizenid = (pData and pData.identifier) or false
         if not citizenid then return end
         
         local results = MySQL.query.await([[

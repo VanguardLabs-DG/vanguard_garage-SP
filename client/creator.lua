@@ -103,7 +103,7 @@ end
 
 --- Set blip garage
 local function setBlip(self)
-    local k, v in self ---@type string, GarageData
+    local k, v = self.k, self.v ---@type string, GarageData
     local blipContext = {
         id = "blip_setting",
         title = locale("context.admin.blip_setting"),
@@ -178,7 +178,7 @@ end
 
 --- Change garage label
 local function changeGarageLabel(self)
-    local k, v in self ---@type string, GarageData
+    local k, v = self.k, self.v ---@type string, GarageData
     
     local inputLabel = lib.inputDialog(locale("input.admin.header_changelabel"), {
         { type = 'input', label = locale("input.admin.label_changelabel"), placeholder = 'Alta Garage, Pilbox Garage, Etc', required = true, min = 1 },
@@ -195,7 +195,7 @@ end
 
 --- Edit the spawn point
 local function setspawnpoint(self)
-    local k, v in self ---@type string, GarageData
+    local k, v = self.k, self.v ---@type string, GarageData
     local asp = v.spawnPoint or {}
     local avsp = v.spawnPointVehicle or {}
     local noEmpty = asp and #asp > 0
@@ -245,7 +245,7 @@ end
 
 --- Add & Remove job
 local function jobOptions(self)
-    local k, v in self ---@type string, GarageData
+    local k, v = self.k, self.v ---@type string, GarageData
 
     local contextJob = {
         id = "rhd_contextJob",
@@ -313,7 +313,7 @@ end
 
 --- Add & Remove gang
 local function gangOptions(self)
-    local k, v in self ---@type string, GarageData
+    local k, v = self.k, self.v ---@type string, GarageData
 
     local contextGang = {
         id = "rhd_contextGang",
@@ -562,6 +562,7 @@ CreateThread(function ()
     
     if fw.playerLoaded then
         print("^2[vanguard_garage] Player carregado! Chamando gzf.refresh()...^7")
+        TriggerServerEvent('vanguard_garage:server:requestGarages')
         gzf.refresh()
         lib.print.info("Dados da garagem carregados com sucesso.")
     end

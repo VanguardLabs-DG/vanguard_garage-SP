@@ -1,14 +1,15 @@
 Config = {}
 
--- Load garage and vehicle data from JSON files
-GarageZone = lib.loadJson('data.garages') ---@type table<string, GarageData>
-CNV = lib.loadJson('data.vehiclesname') ---@type table<string, CustomName>
+-- GarageZone é gerenciada em shared/garages.lua (75 garagens oficiais + Pátio)
+GarageZone = GarageZone or {}
+CNV = lib.loadJson('data.vehiclesname') or {}
 
 Config.Target = 'ox'           -- ox / qb
-Config.RadialMenu = 'ox'       --- ox / qb / rhd
-Config.FuelScript = 'cdn-fuel' --- rhd_fuel / ox_fuel / LegacyFuel / ps-fuel / cdn-fuel
+Config.RadialMenu = 'ox'       --- ox / qb / vanguard
+Config.FuelScript = 'cdn-fuel' --- vanguard_fuel / ox_fuel / LegacyFuel / ps-fuel / cdn-fuel
 Config.changeNamePrice = 15000 --- price for changing the name of the vehicle in the garage
-Config.SpawnInVehicle = true  --- change this to true if you want the player to immediately enter the vehicle when the vehicle is taken out of the garage
+Config.SpawnInVehicle = false --- change this to true if you want the player to immediately enter the vehicle when the vehicle is taken out of the garage
+Config.SpawnLocked = true      --- change this to true if you want the vehicle to spawn locked with engine off (anti-RP)
 Config.VehiclesInAllGarages = true --- Opção ZAP: deixe true para todos os veículos do player aparecerem em todas as garagens
 Config.DisableVehicleCamera = false --- Desativa a movimentação de câmera ao puxar o veículo
 Config.RepairOnInsurance = true -- Se true, o veículo virá 100% consertado ao pagar a franquia de 25% no Pátio. Se false, virá quebrado.
@@ -18,8 +19,8 @@ Config.DestroyedCooldown = 300 -- 5 minutos (em segundos) para carros "Destruíd
 Config.DeleteOldVehicleOnSpawn = true -- Se true, deleta a cópia antiga do carro que estiver no mapa ao retirar do Pátio
 
 --- Additional: (Requires ox_target or qb-target resource)
-Config.UseJobVechileShop = false --- Change this to false if you do not want to use the work vehicle shop system from rhd
-Config.UsePoliceImpound = true  --- change it to false if you don't want to use the police impound system from rhd
+Config.UseJobVechileShop = false --- Change this to false if you do not want to use the work vehicle shop system
+Config.UsePoliceImpound = true  --- change it to false if you don't want to use the police impound system
 
 Config.InDevelopment = true     --- Turn this off when you have finished setting up this garage
 
@@ -38,7 +39,7 @@ Config.SwapGarage = {
 Config.GiveKeys = {
     tempkeys = false, -- true se você quiser dar chaves temporárias quando spawnar o veículo
     enable = true,
-    onspawn = true, --- Opção ZAP: deixe true para seu player ganhar do nada uma chave do carro quando spawnar o veículo e remover quando ele guardar (ao invés dele ter que ir comprar em um chaveiro uma cópia)
+    onspawn = true,  --- true: entrega a chave física no inventário ao retirar da garagem e remove ao guardar
     price = 500
 }
 
@@ -89,7 +90,7 @@ Config.GarageLevels = {
 
 Config.Showrooms = {
     Config = {
-        Enable = true,
+        Enable = false, -- Desativado para spawnar veículos diretamente nas coordenadas de spawnpoint da garagem
         AllowOnlyInPrivateGarages = false,
     },
     level1 = { -- 2 Car Garage
@@ -204,3 +205,178 @@ Config.JobVehicleShop = {
 
 --- Do not modify this section
 Config.HouseGarages = {}
+
+-- =========================================================================
+-- TABELA DE VEÍCULOS DE TRABALHO / FACÇÕES / SERVIÇOS (WORKS - DISTRITO PAULISTA)
+-- =========================================================================
+Config.Works = {
+    ["Bikes"] = {
+        "bmx", "tribike", "cruiser", "fixter"
+    },
+    ["Taxi"] = {
+        "spintaxi"
+    },
+    ["Guincho"] = {
+        "scaniarepair", "flatbed"
+    },
+    ["CarroForte"] = {
+        "stockade"
+    },
+    ["Boats"] = {
+        "dinghy", "jetmax", "marquis", "seashark", "speeder", "squalo", "suntrap", "toro", "tropic"
+    },
+    ["Boats2"] = {
+        "dinghy"
+    },
+    ["BOATS BM"] = {
+        "dinghy", "speeder", "seashark"
+    },
+    ["Paramedico"] = {
+        "tksm3hp", "AGSglehp", "AGSsprinterhp", "AGSxrehp"
+    },
+    ["HP"] = {
+        "tksm3hp", "AGSglehp", "AGSsprinterhp", "AGSxrehp"
+    },
+    ["ParamedicoHeli"] = {
+        "as350samu"
+    },
+    ["HPHELI"] = {
+        "as350samu"
+    },
+    ["VIPFACCAO"] = {
+        "burrito3", "sanchez2"
+    },
+    ["VIPFACCAO2"] = {
+        "mule2", "xj62"
+    },
+    ["PM"] = {
+        "corollapmesp", "dusterpmesp", "dusterpmesp2", "dusterpmesp26", "spinpmesp1", "spinpmesp2",
+        "cretapmesp", "cretapmesp2", "rangerpmesp", "sprinterpmesp", "trailpmesp", "trailpmesp2",
+        "trailpmesp3", "trailpmesp4", "trailpmesp24", "xrepmesp", "xtpmesp", "landerpmesp",
+        "lander21pm", "f850pm", "f850pmesp", "trailrota26"
+    },
+    ["VIPPM"] = {
+        "prdisex6pm"
+    },
+    ["VIPPC"] = {
+        "prdisex6civil"
+    },
+    ["HELIPM"] = {
+        "as350sp"
+    },
+    ["GOE"] = {
+        "wrclassxv2", "trdbope3", "AGSsandcatgoe"
+    },
+    ["PC"] = {
+        "dusterpcesp", "sw4pcesp", "trailpcesp", "trailpcesp2", "trailpcesp3", "trailpcesp4",
+        "trail25tjsp", "s10garrasp", "s10iml", "trailssp"
+    },
+    ["PF"] = {
+        "corollafed", "s10federal22", "trail21federalg2", "cruzeprf", "sprinterprfbase", "trail24prfg3"
+    },
+    ["HELIPF"] = {
+        "as350sp", "eurocopter"
+    },
+    ["PFHELI"] = {
+        "as350sp", "eurocopter"
+    },
+    ["PRF"] = {
+        "corollafed", "cruzeprf", "equinoxprf", "l200prfc", "prfcamaro19", "ranger24prfg3",
+        "s10federal22", "sprinterprfbase", "tiguanprf", "trail21federalg2", "trail24prfg3",
+        "r1250prf", "nc750xprf"
+    },
+    ["HELIPRF"] = {
+        "as350sp"
+    },
+    ["BPRV1"] = {
+        "corollafed", "cruzeprf", "equinoxprf", "l200prfc", "prfcamaro19", "ranger24prfg3",
+        "s10federal22", "sprinterprfbase", "tiguanprf", "trail21federalg2", "trail24prfg3",
+        "r1250prf", "nc750xprf"
+    },
+    ["BPRV"] = {
+        "corollafed", "cruzeprf", "equinoxprf", "l200prfc", "prfcamaro19", "ranger24prfg3",
+        "s10federal22", "sprinterprfbase", "tiguanprf", "trail21federalg2", "trail24prfg3",
+        "r1250prf", "nc750xprf"
+    },
+    ["ROCAM"] = {
+        "f850rocam", "xt660pmesp", "lander23pm"
+    },
+    ["COE"] = {
+        "frontier21coe", "hiluxspcoe", "trail22pmespg2", "vetir"
+    },
+    ["FT"] = {
+        "trail20pmespg2", "sw4spg", "trail22pmespg2", "trail23pmespg3"
+    },
+    ["GCM"] = {
+        "spinpmesp1", "dusterpmesp", "corollapmesp", "xrepmesp"
+    },
+    ["BM"] = {
+        "firetruk", "ambulance"
+    },
+    ["HELI BM"] = {
+        "as350sp"
+    },
+    ["Mecanico"] = {
+        "flatbed", "scaniarepair"
+    },
+    ["Mec"] = {
+        "flatbed", "scaniarepair", "AGSr1200mec", "PRDISEraptormec"
+    },
+    ["Mechanic"] = {
+        "AGSr1200mec", "PRDISEraptormec", "flatbed"
+    },
+    ["VIPLEGAL"] = {
+        "amarokoffroad"
+    },
+    ["FAC"] = {
+        "kamacho"
+    },
+    ["VIPFAC"] = {
+        "gxa45", "dl250", "pounder"
+    },
+    ["Tribunal"] = {
+        "corollaoab", "cullinanoab", "durango21jd", "vrvan"
+    },
+    ["BUZZARD3"] = {
+        "eurocopter"
+    },
+    ["CUPULA"] = {
+        "escaladeprime"
+    },
+    ["Bus"] = {
+        "bus"
+    },
+    ["Impound"] = {
+        "flatbed"
+    },
+    ["Lumberman"] = {
+        "ratloader"
+    },
+    ["Transporter"] = {
+        "stockade"
+    },
+    ["Trash"] = {
+        "trash"
+    },
+    ["Trucker"] = {
+        "hauler", "hauler2", "packer", "phantom"
+    },
+    ["RESTAURANTE041"] = {
+        "taco"
+    },
+    ["RESTAURANTE042"] = {
+        "barbiewhip2000"
+    },
+    ["JORNAL"] = {
+        "rumpo", "a61w"
+    },
+    ["JORNALHELI"] = {
+        "as350sp"
+    },
+    ["Caminhoes"] = {
+        "packer", "vnl780", "daf", "man", "phantom"
+    },
+    ["QCG"] = {
+        "corollapmesp", "dusterpmesp", "trailpmesp", "f850pmesp", "trailrota26"
+    }
+}

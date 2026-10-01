@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerenciador de Garagens</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sticky Top Toolbar -->
+    <header class="top-toolbar">
+      <div class="top-toolbar__main">
+        <div class="top-toolbar__title-group">
+          <div class="title-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+          </div>
+          <div class="top-toolbar__titles">
+            <h1>Gerenciador de Garagens</h1>
+            <p id="headerSubtitle">Carregando garagens do servidor...</p>
+          </div>
+        </div>
+
+        <div class="top-toolbar__actions">
+          <button class="btn btn-secondary" onclick="window.reconcileGarages()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+            Sincronizar
+          </button>
+          <button class="btn btn-primary" onclick="window.openCreateModal()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Nova Garagem
+          </button>
+        </div>
+      </div>
+
+      <div class="controls-bar">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="searchInput" class="search-input" placeholder="Buscar por ID, nome ou cargo...">
+          <button id="searchClear" class="search-clear" title="Limpar busca">✕</button>
+        </div>
+
+        <div class="filter-chips">
+          <button class="chip-btn active" data-filter="all">Todas (<span id="totalGaragesCount">0</span>)</button>
+          <button class="chip-btn" data-filter="public">Públicas</button>
+          <button class="chip-btn" data-filter="job">Trabalho / Facção</button>
+          <button class="chip-btn" data-filter="paid">Pagas</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Scrollable Garages Area (Flawless Scrolling) -->
+    <main class="garages-scroll-container">
+      <div id="garagesGrid" class="garages-grid">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+    </main>
+  </div>
+
+  <!-- Create / Edit Garage Modal -->
+  <div id="garageModal" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2 id="modalTitle">Criar Nova Garagem</h2>
+        <button class="modal-close-btn" onclick="window.closeModal('garageModal')">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="garageIdInput">ID da Garagem (Identificador único)</label>
+            <input type="text" id="garageIdInput" class="form-input" placeholder="Ex: hospital, praca, mec1" maxlength="10">
+            <span class="form-hint">Até 10 caracteres (letras, números, _ ou -).</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="garageTypeSelect">Tipo / Categoria de Veículos</label>
+            <select id="garageTypeSelect" class="form-select">
+              <option value="Garage">Garage (Pública / Pessoal)</option>
+            </select>
+            <span class="form-hint">Define quais categorias de carros são permitidas.</span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="garagePermInput">Permissão / Cargo de Acesso</label>
+            <input type="text" id="garagePermInput" class="form-input" placeholder="Ex: police, mec ou deixe vazio">
+            <span class="form-hint">Deixe vazio para permitir todos os jogadores (Pública).</span>
+          </div>
+
+          <div class="form-group" style="justify-content: center;">
+            <label class="form-checkbox-label">
+              <input type="checkbox" id="garagePaymentCheck">
+              <span>Cobrar taxa de estacionamento</span>
+            </label>
+            <span class="form-hint" style="margin-left: 26px;">Exige pagamento para retirar veículos.</span>
+          </div>
+        </div>
+
+        <!-- Marker Coords Capture Box -->
+        <div class="capture-box">
+          <div class="capture-box__header">
+            <span class="capture-box__title">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+              Entrada da Garagem (Marcador de Interação)
+            </span>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="window.captureMarkerPosition()">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 14 14"></polyline>
+              </svg>
+              Capturar Entrada no Jogo
+            </button>
+          </div>
+          <div id="markerCoordsDisplay" class="coords-display">
+            Nenhuma posição definida. Clique em "Capturar Entrada".
+          </div>
+        </div>
+
+        <!-- Spawns List Capture Box -->
+        <div class="capture-box">
+          <div class="capture-box__header">
+            <span class="capture-box__title">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="1" y="3" width="15" height="13"></rect>
+                <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                <circle cx="18.5" cy="18.5" r="2.5"></circle>
+              </svg>
+              Vagas de Spawn de Veículos
+            </span>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="window.captureSpawnPoint()">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Adicionar Vaga no Jogo
+            </button>
+          </div>
+          <div id="spawnsListContainer" class="spawns-list">
+            <!-- Spawn items rendered here -->
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="window.closeModal('garageModal')">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="window.saveGarageForm()">Salvar Garagem</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div id="deleteModal" class="modal-overlay">
+    <div class="modal-dialog" style="max-width: 440px;">
+      <div class="modal-header">
+        <h2>Excluir Garagem</h2>
+        <button class="modal-close-btn" onclick="window.closeModal('deleteModal')">✕</button>
+      </div>
+      <div class="modal-body" style="padding: 24px;">
+        <p style="font-size: 14px; line-height: 1.5; color: var(--text-main);">
+          Tem certeza de que deseja remover a garagem <strong id="deleteGarageIdText" style="color: #60a5fa;"></strong> permanentemente?
+        </p>
+        <p style="font-size: 12px; color: var(--rose); margin-top: 8px;">
+          Esta ação apagará o registro do banco de dados e desativará os pontos de spawn.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="window.closeModal('deleteModal')">Cancelar</button>
+        <button type="button" class="btn btn-danger" onclick="window.executeDeleteGarage()">Excluir Garagem</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script src="./app.js"></script>
+</body>
+</html>

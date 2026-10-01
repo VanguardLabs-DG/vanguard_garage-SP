@@ -12,7 +12,7 @@ local function getRankVehicles(vehicle)
     for model, data in pairs(list) do
         if data.forRank[myRank] and IsModelValid(model) then
             results[index] = {model = model, label = data.label, price = data.price, prefixPlate = data.prefixPlate}
-            index += 1
+            index = index + 1
         end
     end
 

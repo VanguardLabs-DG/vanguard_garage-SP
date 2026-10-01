@@ -158,8 +158,10 @@ function utils.getFuel(vehicle) end
 ---@param coords vector4 --- Coordinates for the vehicle
 ---@param cb? fun(veh: integer) --- Callback function for vehicle creation
 ---@param network? boolean --- Whether to create the vehicle with network support
+---@param props? table --- Vehicle mods and properties
+---@param extra? table --- Extra metadata (plate, garage, isWork)
 ---@return integer? --- Returns the vehicle entity ID
-function utils.createPlyVeh(model, coords, cb, network) end
+function utils.createPlyVeh(model, coords, cb, network, props, extra) end
 
 --- Checking or Get garage type
 ---@param data table[] --- List of garage types

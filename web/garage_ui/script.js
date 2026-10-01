@@ -65,7 +65,7 @@ function selectVehicle(veh, cardElement) {
     updateStat('engine', (veh.engine || 1000) / 10);
     updateStat('body', (veh.body || 1000) / 10);
     
-    document.getElementById('status-text').innerText = veh.state_text || "Na Garagem";
+    document.getElementById('status-text').innerText = veh.state_text || (veh.state === 1 ? "Na Garagem" : "Fora da Garagem");
     
     const takeOutBtn = document.getElementById('take-out-btn');
     if (veh.state !== 1) {

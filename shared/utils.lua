@@ -55,6 +55,25 @@ function utils.drawtext (type, text, icon)
     end
 end
 
+function utils.vanguardProgress(label, duration)
+    local p = promise.new()
+    local start = GetGameTimer()
+    Citizen.CreateThread(function()
+        while GetGameTimer() - start < duration do
+            local percent = ((GetGameTimer() - start) / duration) * 100
+            SendNUIMessage({
+                action = 'progress',
+                label = label,
+                percent = percent
+            })
+            Wait(100)
+        end
+        SendNUIMessage({ action = 'progressHide' })
+        p:resolve(true)
+    end)
+    return Citizen.Await(p)
+end
+
 function utils.createMenu( data )
     lib.registerContext(data)
     lib.showContext(data.id)
@@ -287,33 +306,85 @@ end
 
 
 function utils.setFuel(vehicle, fuel)
-    Wait(100)
-    if Config.FuelScript == "ox_fuel" then
-        Entity(vehicle).state.fuel = fuel or 100
-    else
-        exports[Config.FuelScript]:SetFuel(vehicle, fuel or 100)
+    if not vehicle or not DoesEntityExist(vehicle) then return end
+    fuel = (tonumber(fuel) or 100.0) + 0.0
+    if fuel > 100.0 then fuel = 100.0 end
+    if fuel < 0.0 then fuel = 0.0 end
+
+    local fuelScript = Config.FuelScript
+    local success = false
+
+    if fuelScript == "ox_fuel" then
+        pcall(function()
+            Entity(vehicle).state.fuel = fuel
+            success = true
+        end)
+    elseif fuelScript and GetResourceState(fuelScript) == "started" then
+        pcall(function()
+            if exports[fuelScript] and exports[fuelScript].SetFuel then
+                exports[fuelScript]:SetFuel(vehicle, fuel)
+                success = true
+            elseif exports[fuelScript] and exports[fuelScript].setFuel then
+                exports[fuelScript]:setFuel(vehicle, fuel)
+                success = true
+            end
+        end)
+    end
+
+    if not success then
+        pcall(function()
+            SetVehicleFuelLevel(vehicle, fuel)
+        end)
     end
 end
 
 function utils.getFuel(vehicle)
-    local fuelLevel = 0
-    if Config.FuelScript == "ox_fuel" then
-        fuelLevel = Entity(vehicle).state?.fuel or 100 
-    else
-        fuelLevel = exports[Config.FuelScript]:GetFuel(vehicle)
+    if not vehicle or not DoesEntityExist(vehicle) then return 100 end
+    local fuelLevel = nil
+    local fuelScript = Config.FuelScript
+
+    if fuelScript == "ox_fuel" then
+        pcall(function()
+            local st = Entity(vehicle).state
+            fuelLevel = st and st.fuel
+        end)
+    elseif fuelScript and GetResourceState(fuelScript) == "started" then
+        pcall(function()
+            if exports[fuelScript] and exports[fuelScript].GetFuel then
+                fuelLevel = exports[fuelScript]:GetFuel(vehicle)
+            elseif exports[fuelScript] and exports[fuelScript].getFuel then
+                fuelLevel = exports[fuelScript]:getFuel(vehicle)
+            end
+        end)
     end
-    return fuelLevel
+
+    if type(fuelLevel) ~= "number" then
+        pcall(function()
+            fuelLevel = GetVehicleFuelLevel(vehicle)
+        end)
+    end
+
+    return fuelLevel or 100
 end
 
-function utils.createPlyVeh ( model, coords, cb, network, props )
+function utils.createPlyVeh ( model, coords, cb, network, props, extra )
     network = network == nil and false or network
     lib.requestModel(model, 150000)
-    local netid = lib.callback.await("vanguard_garage:server:spawnVehicle", false, model, coords, props)
+    local netid = lib.callback.await("vanguard_garage:server:spawnVehicle", false, model, coords, props, extra)
     if not netid then 
         if cb then cb(nil) end
         return 
     end
+    local timeout = 100
+    while not NetworkDoesEntityExistWithNetworkId(netid) and timeout > 0 do
+        Wait(20)
+        timeout = timeout - 1
+    end
     local veh = NetworkGetEntityFromNetworkId(netid)
+    if not veh or veh == 0 or not DoesEntityExist(veh) then
+        if cb then cb(nil) else return nil end
+        return
+    end
     SetVehicleHasBeenOwnedByPlayer(veh, true)
     SetVehicleNeedsToBeHotwired(veh, false)
     SetVehRadioStation(veh, 'OFF')

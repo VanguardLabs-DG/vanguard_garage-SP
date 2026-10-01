@@ -22,11 +22,22 @@ lib.callback.register("vanguard_garage:cb_server:policeImpound.getVehicle", func
     return dataToSend
 end)
 
-lib.callback.register("vanguard_garage:cb_server:policeImpound.impoundveh", function (_, impoundData )
+lib.callback.register("vanguard_garage:cb_server:policeImpound.impoundveh", function (source, impoundData )
+    local player = exports.qbx_core:GetPlayer(source)
+    if not player then return false end
+    local job = player.PlayerData.job
+    local jobName = (job and job.name or ""):lower()
+    local jobType = (job and job.type or ""):lower()
+    if jobName ~= "police" and jobName ~= "pm" and jobName ~= "pc" and jobName ~= "pf" and jobName ~= "prf" and jobType ~= "leo" then
+        print(("[vanguard_garage] AVISO: Jogador %s (%s) tentou apreender veículo sem ser policial!"):format(GetPlayerName(source), source))
+        return false
+    end
+    if not impoundData or not impoundData.plate then return false end
+    local cleanPlate = utils.string.trim(impoundData.plate)
     local impounded = MySQL.insert.await('INSERT INTO `police_impound` (citizenid, plate, vehicle, props, owner, officer, date, fine, garage) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', {
-        impoundData.citizenid, impoundData.plate, impoundData.vehicle, json.encode(impoundData.prop), impoundData.owner, impoundData.officer, os.date('%d/%m/%Y', impoundData.date), impoundData.fine, impoundData.garage
+        impoundData.citizenid, cleanPlate, impoundData.vehicle, json.encode(impoundData.prop), impoundData.owner, impoundData.officer, os.date('%d/%m/%Y', impoundData.date), impoundData.fine, impoundData.garage
     })
-    return fw.uvspi(impoundData.plate, 2)
+    return fw.uvspi(cleanPlate, 2)
 end)
 
 lib.callback.register("vanguard_garage:cb_server:policeImpound.cekDate", function (_, date )
@@ -42,7 +53,20 @@ end)
 --- events
 RegisterNetEvent('vanguard_garage:server:removeFromPoliceImpound', function( plate )
     if GetInvokingResource() then return end
-    fw.uvspi(plate, 0)
+    local src = source
+    local player = exports.qbx_core:GetPlayer(src)
+    if not player then return end
+    local job = player.PlayerData.job
+    local jobName = (job and job.name or ""):lower()
+    local jobType = (job and job.type or ""):lower()
+    local isOfficer = (jobName == "police" or jobName == "pm" or jobName == "pc" or jobName == "pf" or jobName == "prf" or jobType == "leo")
+    local cleanPlate = plate and utils.string.trim(plate)
+    if not cleanPlate then return end
+
+    local result = MySQL.single.await("SELECT paid FROM police_impound WHERE plate = ?", {cleanPlate})
+    if isOfficer or (result and result.paid == 1) then
+        fw.uvspi(cleanPlate, 0)
+    end
 end)
 
 RegisterNetEvent('vanguard_garage:server:policeImpound.sendBill', function( citizenid, fine, plate )

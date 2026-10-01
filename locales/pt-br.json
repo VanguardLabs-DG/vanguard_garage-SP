@@ -12,6 +12,8 @@
             "swapgarage": "Ocorreu um problema!",
             "player_offline" : "Não há jogador com o id %s",
             "cannot_transfer_to_myself": "Não é possível transferir para si mesmo!",
+            "no_vehicles": "Você não possui nenhum veículo nesta garagem.",
+            "no_vehicle_near": "O veículo selecionado não está próximo da garagem para ser guardado.",
             "no_available_policeimpound_location": "Locais de garagem para veículos confiscados ainda não estão disponíveis! Peça ao desenvolvedor do servidor para criá-los."
         },
         "info": {

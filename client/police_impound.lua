@@ -18,13 +18,35 @@ local function spawnvehicle ( data )
     if not vehData then return error('Failed to load vehicle data with number plate ' .. data.plate) end
     local vehEntity = utils.createPlyVeh(vehData.model, data.coords, false, true, vehData.mods)
     SetVehicleOnGroundProperly(vehEntity)
-    if Config.SpawnInVehicle then TaskWarpPedIntoVehicle(cache.ped, vehEntity, -1) end
+    local cleanPlate = utils.string.trim(vehData.plate)
+    if Config.SpawnInVehicle then
+        TaskWarpPedIntoVehicle(cache.ped, vehEntity, -1)
+    else
+        if Config.SpawnLocked then
+            SetVehicleDoorsLocked(vehEntity, 2)
+            local netId = NetworkGetNetworkIdFromEntity(vehEntity)
+            if netId and netId ~= 0 then
+                TriggerServerEvent('mm_carkeys:server:setVehLockState', netId, 2)
+            end
+        end
+        SetVehicleEngineOn(vehEntity, false, false, true)
+        SetVehicleLights(vehEntity, 0)
+    end
+    if vehData.deformation then
+        Deformation.set(vehEntity, vehData.deformation)
+    end
     SetVehicleEngineHealth(vehEntity, vehData.engine + 0.0)
     SetVehicleBodyHealth(vehEntity, vehData.body + 0.0)
     utils.setFuel(vehEntity, vehData.fuel)
-    Deformation.set(vehEntity, vehData.deformation)
     TriggerServerEvent("vanguard_garage:server:removeFromPoliceImpound", vehData.plate)
-    TriggerEvent("vehiclekeys:client:SetOwner", utils.string.trim(vehData.plate))
+    if GetResourceState('mri_Qcarkeys') == 'started' then
+        if Config.GiveKeys.onspawn and not exports.mri_Qcarkeys:HavePermanentKey(cleanPlate) then
+            exports.mri_Qcarkeys:GiveKeyItem(cleanPlate)
+        end
+        if not Config.SpawnInVehicle then
+            Entity(vehEntity).state:set('keysIn', false, true)
+        end
+    end
 end
 
 ---@param garage table

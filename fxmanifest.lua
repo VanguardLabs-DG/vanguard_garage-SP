@@ -23,6 +23,7 @@ server_scripts {
     '@oxmysql/lib/MySQL.lua',
     'server/db_update.lua',
     'server/main.lua',
+    'server/admin.lua',
     'server/police_impound.lua',
     'server/storage.lua',
     'server/vehicle.lua',
@@ -47,6 +48,11 @@ files {
     'web/index.html',
     'web/assets/mercosul.svg',
     'web/showroom_tags/index.html',
+    'admin/index.html',
+    'admin/style.css',
+    'admin/app.js',
+    'admin/garages.html',
+    'admin/assets/*',
 }
 
 ox_lib "locale"

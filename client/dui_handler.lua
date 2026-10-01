@@ -32,7 +32,7 @@ function ShowroomDUI.Create(vehicle, data)
         return 
     end
 
-    local txdName = "rhd_showroom_" .. tostring(duiId)
+    local txdName = "vanguard_showroom_" .. tostring(duiId)
     local txn = "card"
     
     local dui = CreateDui(GetDuiUrl(), 1024, 640)

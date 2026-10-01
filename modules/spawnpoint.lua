@@ -199,11 +199,11 @@ function spawnPoint.create(zone, required, existingPoint, vehicleTypes)
             end
 
             if IsDisabledControlJustPressed(0, 172) then
-                prefixZ += 0.1
+                prefixZ = prefixZ + 0.1
             end
 
             if IsDisabledControlJustPressed(0, 173) then
-                prefixZ -= 0.1
+                prefixZ = prefixZ - 0.1
             end
 
             if IsDisabledControlJustPressed(0, 15) then

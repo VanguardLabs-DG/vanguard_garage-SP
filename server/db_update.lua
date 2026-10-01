@@ -23,5 +23,9 @@ AddEventHandler('onResourceStart', function(resource)
         if #results > 0 then
             print(string.format('^1Errors: %s^0', json.encode(results)))
         end
+        -- Restaura veículos que ficaram travados em state = 3 (/dv ou destruição antiga)
+        pcall(function()
+            MySQL.update("UPDATE player_vehicles SET state = 1, engine = 1000, body = 1000 WHERE state = 3", {})
+        end)
     end
 end)

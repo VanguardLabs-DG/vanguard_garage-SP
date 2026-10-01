@@ -51,23 +51,23 @@ end
 ---@param type string
 ---@return integer
 function fw.gm(type)
-    return fw.player.money?[type] or 0
+    return (fw.player and fw.player.money and fw.player.money[type]) or 0
 end
 
 ---@return string
 function fw.gn()
-    return fw.player.name
+    return fw.player and fw.player.name or ""
 end
 
 --- Get Vehicle Name
 ---@param model string
 function fw.gvn(model)
-    local vd = QBCore.Shared.Vehicles[model]
+    local vd = QBCore and QBCore.Shared and QBCore.Shared.Vehicles and QBCore.Shared.Vehicles[model]
     local makename = GetMakeNameFromVehicleModel(model)
     local displayname = GetDisplayNameFromVehicleModel(model)
 
-    local vm = vd?.brand or makename
-    local vn = vd?.name or displayname
+    local vm = (vd and vd.brand) or makename
+    local vn = (vd and vd.name) or displayname
     return ("%s %s"):format(vm, vn)
 end
 
@@ -166,8 +166,23 @@ if isServer then
     ---@param src number
     ---@return table | boolean
     function fw.gp(src)
-        if not xPlayer then return false end
-        return xPlayer[tostring(src)] or false
+        local idstr = tostring(src)
+        local p = nil
+        if exports.qbx_core then
+            p = exports.qbx_core:GetPlayer(src)
+        end
+        if not p and QBCore and QBCore.Functions then
+            p = QBCore.Functions.GetPlayer(src)
+        end
+        if p and p.PlayerData then
+            if not xPlayer then xPlayer = {} end
+            xPlayer[idstr] = p.PlayerData
+            return p.PlayerData
+        end
+        if xPlayer and xPlayer[idstr] then
+            return xPlayer[idstr]
+        end
+        return false
     end
 
     --- Get Identifier
@@ -176,8 +191,9 @@ if isServer then
     ---@return string | boolean
     ---@return string | boolean
     function fw.gi(src, withLicense)
-        local pData = xPlayer[tostring(src)]
-        local citizenid, license = pData?.citizenid, withLicense and pData?.license or false
+        local pData = fw.gp(src)
+        local citizenid = pData and pData.citizenid
+        local license = withLicense and pData and pData.license or false
         return citizenid or false, license
     end
 
@@ -205,7 +221,8 @@ if isServer then
     ---@return string
     function fw.gn(src)
         local idstr = tostring(src)
-        local charinfo = xPlayer[idstr]?.charinfo or {}
+        local pData = xPlayer[idstr]
+        local charinfo = (pData and pData.charinfo) or {}
         return next(charinfo) and ("%s %s"):format(charinfo.firstname, charinfo.lastname) or "Unkown Players"
     end
 
@@ -320,15 +337,15 @@ if isServer then
                     p.charinfo
                 FROM player_vehicles pv LEFT JOIN players p ON pv.citizenid = p.citizenid
                     WHERE
-                        pv.plate = ? OR pv.fakeplate = ? AND pv.citizenid = ?
+                        (pv.plate = ? OR pv.fakeplate = ?) AND pv.citizenid = ?
             ]]
             value = {plate, plate, identifier}
         end
 
         local results = MySQL.single.await(format, value)
         if not results then return false end
-        local charinfo = json.decode(results.charinfo)
-        local ownername = ("%s %s"):format(charinfo.firstname, charinfo.lastname)
+        local charinfo = type(results.charinfo) == "string" and json.decode(results.charinfo) or (results.charinfo or {})
+        local ownername = ("%s %s"):format(charinfo.firstname or "Cidadão", charinfo.lastname or "")
 
         if pleaseUpdate then
             MySQL.update([[
@@ -338,11 +355,11 @@ if isServer then
                     vehicle_name = ?, mods = ?, fuel = ?, engine = ?, body = ?, deformation = ? WHERE plate = ? OR fakeplate = ?
             ]], {
                 pleaseUpdate.vehicle_name,
-                json.encode(pleaseUpdate.mods),
-                math.floor(pleaseUpdate.fuel),
-                math.floor(pleaseUpdate.engine),
-                math.floor(pleaseUpdate.body),
-                json.encode(pleaseUpdate.deformation),
+                json.encode(pleaseUpdate.mods or {}),
+                math.floor(tonumber(pleaseUpdate.fuel) or 100),
+                math.floor(tonumber(pleaseUpdate.engine) or 1000),
+                math.floor(tonumber(pleaseUpdate.body) or 1000),
+                json.encode(pleaseUpdate.deformation or {}),
                 plate,
                 plate
             })
@@ -373,6 +390,7 @@ if isServer then
                 pv.state,
                 pv.depotprice,
                 pv.balance,
+                pv.deformation,
                 p.charinfo
             FROM player_vehicles pv LEFT JOIN players p ON pv.citizenid = p.citizenid WHERE pv.plate = ? OR pv.fakeplate = ?
         ]], {plate, plate})
@@ -380,11 +398,12 @@ if isServer then
         local vehicles = {}
         if results then
             local v = results
-            local charinfo = json.decode(v.charinfo)
-            local mods = json.decode(v.mods)
+            local charinfo = v.charinfo and json.decode(v.charinfo) or nil
+            local mods = v.mods and json.decode(v.mods) or {}
+            local deformation = v.deformation and (type(v.deformation) == 'table' and v.deformation or json.decode(v.deformation)) or nil
             vehicles = {
                 owner = {
-                    name = ("%s %s"):format(charinfo.firstname, charinfo.lastname),
+                    name = charinfo and ("%s %s"):format(charinfo.firstname, charinfo.lastname) or "Desconhecido",
                     citizenid = v.citizenid,
                 },
                 vehicle_name = v.vehicle_name,
@@ -399,7 +418,8 @@ if isServer then
                 body = v.body,
                 state = v.state,
                 depotprice = v.depotprice,
-                balance = v.balance
+                balance = v.balance,
+                deformation = deformation
             }
         end
 
@@ -422,14 +442,14 @@ if isServer then
             value = {Identifier}
         elseif Config.VehiclesInAllGarages then
             format = [[
-                SELECT vehicle, vehicle_name, mods, state, depotprice, plate, fakeplate, fuel, engine, body, deformation
-                FROM player_vehicles WHERE citizenid = ? AND state = 1
+                SELECT vehicle, vehicle_name, mods, state, depotprice, plate, fakeplate, fuel, engine, body, deformation, last_out
+                FROM player_vehicles WHERE citizenid = ? AND (state != 2 OR state IS NULL)
             ]]
             value = {Identifier}
         else
             format = [[
-                SELECT vehicle, vehicle_name, mods, state, depotprice, plate, fakeplate, fuel, engine, body, deformation
-                FROM player_vehicles WHERE citizenid = ? AND garage = ? AND state = 1
+                SELECT vehicle, vehicle_name, mods, state, depotprice, plate, fakeplate, fuel, engine, body, deformation, last_out
+                FROM player_vehicles WHERE citizenid = ? AND (garage = ? OR state = 0 OR state = 3) AND (state != 2 OR state IS NULL)
             ]]
             value = {Identifier, garage}
         end
@@ -459,6 +479,15 @@ if isServer then
                 local sharedData = QBCore.Shared.Vehicles[model]
                 local marketPrice = sharedData and sharedData.price or 0
 
+                local stateText = "Na Garagem"
+                if state == 0 then
+                    stateText = "Fora da Garagem"
+                elseif state == 2 then
+                    stateText = "Apreendido"
+                elseif state == 3 then
+                    stateText = "Destruído"
+                end
+
                 vehicles[#vehicles+1] = {
                     vehicle = mods,
                     vehicle_name = data.vehicle_name,
@@ -466,6 +495,7 @@ if isServer then
                     engine = data.engine,
                     body = data.body,
                     state = state,
+                    state_text = stateText,
                     last_out = data.last_out or 0,
                     model = model,
                     plate = plate,
@@ -490,7 +520,8 @@ if isServer then
     ---@return table
     function fw.gvfp(src)
         local idstr = tostring(src)
-        local citizenid = xPlayer[idstr]?.citizenid or false
+        local pData = xPlayer[idstr]
+        local citizenid = (pData and pData.citizenid) or false
         if not citizenid then return end
 
         local results = MySQL.query.await([[
@@ -511,10 +542,10 @@ if isServer then
             for i=1, #results do
                 local v = results[i]
                 local plate = utils.string.trim(v.plate)
-                local vd = QBCore.Shared.Vehicles[v.vehicle]
-                local brand = vd?.brand
-                local name = vd?.name
-                local defaultname = brand and ("%s %s"):format(brand, name)
+                local vd = QBCore and QBCore.Shared and QBCore.Shared.Vehicles and QBCore.Shared.Vehicles[v.vehicle]
+                local brand = vd and vd.brand
+                local name = vd and vd.name
+                local defaultname = brand and ("%s %s"):format(brand, name or "")
                 local customName = CNV[plate] and CNV[plate].name
                 local vehname = customName or defaultname
 

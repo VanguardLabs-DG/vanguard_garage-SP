@@ -328,9 +328,59 @@
         }
         .btn-impound:hover:not(:disabled) { box-shadow: 0 20px 45px rgba(255, 143, 0, 0.55); }
 
+        .btn-store {
+            width: 100%; padding: 16px; border-radius: 12px; border: none;
+            background: linear-gradient(135deg, #10b981, #047857);
+            color: #fff; font-weight: 900; font-size: 13px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+            transition: all 0.3s cubic-bezier(0.2, 1, 0.2, 1); text-transform: uppercase; letter-spacing: 2px;
+            box-shadow: 0 12px 30px rgba(16, 185, 129, 0.35);
+            margin-top: 10px;
+            backface-visibility: hidden;
+        }
+        .btn-store:hover:not(:disabled) { transform: translate3d(0, -5px, 0); box-shadow: 0 20px 45px rgba(16, 185, 129, 0.55); filter: brightness(1.15); }
+        .btn-store:active { transform: translate3d(0, 0, 0); }
+        .btn-store:disabled { opacity: 0.25; cursor: not-allowed; filter: grayscale(1); box-shadow: none; }
+
         .hint-text { margin-top: 20px; text-align: center; font-size: 9px; font-weight: 800; color: var(--t3); letter-spacing: 2px; text-transform: uppercase; opacity: 0.7; }
 
         #tags-iframe { position: fixed; inset: 0; border: none; pointer-events: none; z-index: 100; }
+
+        /* ---- Vanguard Progress ---- */
+        .vanguard-progress-wrap {
+            position: fixed; bottom: 50px; left: 50%;
+            transform: translateX(-50%);
+            width: 300px; padding: 20px;
+            background: rgba(5, 5, 14, 0.85);
+            border: 1px solid var(--glass-b);
+            border-radius: 16px;
+            backdrop-filter: blur(12px);
+            display: flex; flex-direction: column; gap: 10px;
+            z-index: 1000;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            animation: progressPop 0.3s cubic-bezier(0.2, 1, 0.2, 1);
+        }
+
+        @keyframes progressPop { from { opacity: 0; transform: translate(-50%, 20px); } }
+
+        .progress-label {
+            font-size: 10px; font-weight: 800; color: var(--t3);
+            text-transform: uppercase; letter-spacing: 2px; text-align: center;
+        }
+
+        .vanguard-bar-bg {
+            height: 4px; width: 100%;
+            background: rgba(255,255,255,0.05);
+            border-radius: 2px; overflow: hidden;
+            position: relative;
+        }
+
+        .vanguard-bar-fill {
+            height: 100%; width: 0%;
+            background: var(--blue);
+            box-shadow: 0 0 10px var(--blue-glow);
+            transition: width 0.1s linear;
+        }
     </style>
 </head>
 <body x-data="garageApp()">
@@ -338,6 +388,13 @@
     <iframe src="showroom_tags/index.html" id="tags-iframe" x-cloak></iframe>
 
     <div class="app-wrapper" x-show="isOpen" :class="{ 'is-impound': isImpound }" x-cloak>
+        <!-- Vanguard Progress Component -->
+        <div class="vanguard-progress-wrap" x-show="progress.show" x-transition x-cloak>
+            <div class="progress-label" x-text="progress.label"></div>
+            <div class="vanguard-bar-bg">
+                <div class="vanguard-bar-fill" :style="'width: ' + progress.percent + '%'"></div>
+            </div>
+        </div>
         <div class="sidebar">
             <div class="sidebar-glow"></div>
             <div class="sidebar-line"></div>
@@ -437,20 +494,28 @@
                             </div>
                             <div class="stat-info">
                                 <span class="stat-label">Status</span>
-                                <span class="stat-value" :style="'color:' + (selected?.state_text === 'Quebrado' ? 'var(--red)' : (selected?.state === 1 ? 'var(--green)' : 'var(--red)'))" x-text="selected?.state_text"></span>
+                                <span class="stat-value" :style="'color:' + (selected?.state_text === 'Quebrado' ? 'var(--red)' : (selected?.state === 1 ? 'var(--green)' : 'var(--red)'))" x-text="selected?.state_text || (selected?.state === 1 ? 'Na Garagem' : 'Fora da Garagem')"></span>
                             </div>
                         </div>
                     </div>
 
-                    <button class="btn-withdraw" :class="{ 'btn-impound': isImpound }" @click="spawn()">
+                    <button class="btn-withdraw" :class="{ 'btn-impound': isImpound }" @click="spawn()" :disabled="!canSpawn()">
                         <template x-if="!isImpound">
                             <i class="fa-solid fa-key"></i>
                         </template>
                         <template x-if="isImpound">
                             <i class="fa-solid fa-hand-holding-dollar"></i>
                         </template>
-                        <span x-text="isImpound ? 'PAGAR E RECUPERAR' : 'RETIRAR VEÍCULO'"></span>
+                        <span x-text="getSpawnButtonText()"></span>
                     </button>
+
+                    <!-- Botão de Guardar Veículo solicitado pelo usuário -->
+                    <template x-if="!isImpound">
+                        <button class="btn-store" @click="storeVeh()" :disabled="!canStore()">
+                            <i class="fa-solid fa-square-parking"></i>
+                            <span x-text="getStoreButtonText()"></span>
+                        </button>
+                    </template>
 
                     <div class="hint-text">ESC PARA FECHAR</div>
                 </div>
@@ -477,11 +542,17 @@
             return {
                 isOpen: false,
                 isImpound: false,
+                isProcessing: false,
                 vehicles: [],
                 search: '',
                 selected: null,
                 garageName: '',
                 imageStatus: {},
+                progress: {
+                    show: false,
+                    label: '',
+                    percent: 0
+                },
 
                 init() {
                     window.addEventListener('message', (event) => {
@@ -493,8 +564,21 @@
                             this.isOpen = true;
                             this.selected = null;
                             this.imageStatus = {};
+                            this.isProcessing = false;
                         }
-                        if (item.action === 'close') this.isOpen = false;
+                        if (item.action === 'close') {
+                            this.isOpen = false;
+                            this.isProcessing = false;
+                        }
+
+                        if (item.action === 'progress') {
+                            this.progress.show = true;
+                            this.progress.label = item.label;
+                            this.progress.percent = item.percent;
+                        }
+                        if (item.action === 'progressHide') {
+                            this.progress.show = false;
+                        }
                     });
                     document.addEventListener('keydown', (e) => {
                         if (e.key === 'Escape' && this.isOpen) {
@@ -534,20 +618,68 @@
                     this.imageStatus = { ...this.imageStatus };
                 },
 
+                canSpawn() {
+                    if (this.isProcessing) return false;
+                    if (!this.selected) return false;
+                    if (this.isImpound) return true;
+                    if (this.selected.isWork) return true;
+                    return this.selected.state === 1;
+                },
+
+                getSpawnButtonText() {
+                    if (this.isProcessing) return 'PROCESSANDO...';
+                    if (this.isImpound) return 'PAGAR E RECUPERAR';
+                    if (!this.selected) return 'RETIRAR VEÍCULO';
+                    if (this.selected.isWork) return 'RETIRAR VIATURA / SERVIÇO';
+                    if (this.selected.state === 0) return 'VEÍCULO FORA DA GARAGEM';
+                    if (this.selected.state === 3) return 'VEÍCULO DESTRUÍDO';
+                    return 'RETIRAR VEÍCULO';
+                },
+
+                canStore() {
+                    if (this.isProcessing) return false;
+                    if (!this.selected || this.isImpound) return false;
+                    if (this.selected.isWork) return true;
+                    if (this.selected.state === 1) return false;
+                    return !!(this.selected.isNearby || this.selected.canStore);
+                },
+
+                getStoreButtonText() {
+                    if (this.isProcessing) return 'PROCESSANDO...';
+                    if (!this.selected) return 'GUARDAR VEÍCULO';
+                    if (this.selected.isWork) return 'GUARDAR VIATURA / SERVIÇO';
+                    if (this.selected.state === 1) return 'JÁ ESTÁ NA GARAGEM';
+                    if (this.selected.isNearby || this.selected.canStore) return 'GUARDAR VEÍCULO (PRÓXIMO)';
+                    return 'VEÍCULO LONGE DA GARAGEM';
+                },
+
                 spawn() {
-                    if (!this.selected) return;
+                    if (!this.selected || !this.canSpawn() || this.isProcessing) return;
+                    this.isProcessing = true;
                     Nui.post('takeOutVehicle', { 
                         plate: this.selected.plate, 
                         garage: this.garageName,
                         price: this.selected.price,
                         model: this.selected.model,
-                        name: this.selected.name
+                        name: this.selected.name,
+                        isWork: this.selected.isWork
+                    });
+                    this.close();
+                },
+
+                storeVeh() {
+                    if (!this.selected || this.isProcessing) return;
+                    this.isProcessing = true;
+                    Nui.post('storeSelectedVehicle', {
+                        plate: this.selected.plate,
+                        garage: this.garageName
                     });
                     this.close();
                 },
 
                 close() {
                     this.isOpen = false;
+                    this.isProcessing = false;
                     Nui.post('closeUI');
                 }
             }

@@ -19,7 +19,7 @@ if qbHousing or psHousing or qsHousing then
             houseZone[lasthouse]:remove()
         end
         
-        if hasKey and HG.takeVehicle?.x then
+        if hasKey and HG.takeVehicle and HG.takeVehicle.x then
             local coords = HG.takeVehicle
             local label = HG.label
             local spawnloc = vec4(coords.x, coords.y, coords.z, coords.w)

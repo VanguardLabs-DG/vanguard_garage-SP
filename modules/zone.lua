@@ -172,23 +172,23 @@ function Zones.startCreator( data )
             if IsDisabledControlJustReleased(0, 17) then -- scroll up
                 if IsDisabledControlPressed(0, 21) then -- shift held down
                     change = true
-                    height += lStep
+                    height = height + lStep
                 elseif IsDisabledControlPressed(0, 36) then -- ctrl held down
                     change = true
-                    width += lStep
+                    width = width + lStep
                 elseif IsDisabledControlPressed(0, 19) then -- alt held down
                     change = true
-                    length += lStep
+                    length = length + lStep
                 else
-                    lStep += 0.05
-                    rStep += 0.05
+                    lStep = lStep + 0.05
+                    rStep = rStep + 0.05
                 end
             elseif IsDisabledControlJustReleased(0, 16) then -- scroll down
                 if IsDisabledControlPressed(0, 21) then -- shift held down
                     change = true
 
                     if height - lStep > lStep then
-                        height -= lStep
+                        height = height - lStep
                     elseif height - lStep > 0 then
                         height = lStep
                     end
@@ -196,7 +196,7 @@ function Zones.startCreator( data )
                     change = true
 
                     if width - lStep > lStep then
-                        width -= lStep
+                        width = width - lStep
                     elseif width - lStep > 0 then
                         width = lStep
                     end
@@ -204,14 +204,16 @@ function Zones.startCreator( data )
                     change = true
 
                     if length - lStep > lStep then
-                        length -= lStep
+                        length = length - lStep
                     elseif length - lStep > 0 then
                         length = lStep
                     end
                 else
-                    lStep -= 0.05 rStep -= 0.05
+                    lStep = lStep - 0.05
+                    rStep = rStep - 0.05
                     if lStep < 0.02 or rStep < 0.02 then
-                        lStep = 0.02 rStep = 0.02
+                        lStep = 0.02
+                        rStep = 0.02
                     end
                 end
             elseif IsDisabledControlPressed(0, 188) then --- arrow up
@@ -334,17 +336,17 @@ function Zones.startCreator( data )
                 zCoord = newValue
             elseif IsDisabledControlJustReleased(0, 38) then -- e
                 change = true
-                heading -= rStep
+                heading = heading - rStep
 
                 if heading < 0 then
-                    heading += 360
+                    heading = heading + 360
                 end
             elseif IsDisabledControlJustReleased(0, 44) then -- q
                 change = true
-                heading += rStep
+                heading = heading + rStep
 
                 if heading >= 360 then
-                    heading -= 360
+                    heading = heading - 360
                 end
             elseif IsDisabledControlJustReleased(0, 22) then -- space
                 change = true
