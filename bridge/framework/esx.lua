@@ -38,9 +38,19 @@ end
 --- Get Vehicle Name
 ---@param model string
 function fw.gvn(model)
-    local makename = GetMakeNameFromVehicleModel(model)
-    local displayname = GetDisplayNameFromVehicleModel(model)
-    return ("%s %s"):format(makename, displayname)
+    if not model or model == "" then return "" end
+    if IsDuplicityVersion() then
+        return string.upper(tostring(model))
+    end
+    local mHash = type(model) == "number" and model or joaat(tostring(model):lower())
+    local makename = GetMakeNameFromVehicleModel and GetMakeNameFromVehicleModel(mHash) or ""
+    local displayname = GetDisplayNameFromVehicleModel and GetDisplayNameFromVehicleModel(mHash) or ""
+    if makename ~= "" and displayname ~= "" then
+        return ("%s %s"):format(makename, displayname)
+    elseif displayname ~= "" then
+        return displayname
+    end
+    return string.upper(tostring(model))
 end
 
 RegisterNetEvent('esx:playerLoaded')

@@ -16,22 +16,32 @@ end
 local function spawnvehicle ( data )
     local vehData = lib.callback.await('vanguard_garage:cb_server:getvehiclePropByPlate', false, data.plate)
     if not vehData then return error('Failed to load vehicle data with number plate ' .. data.plate) end
-    local vehEntity = utils.createPlyVeh(vehData.model, data.coords, false, true, vehData.mods)
-    SetVehicleOnGroundProperly(vehEntity)
-    local cleanPlate = utils.string.trim(vehData.plate)
-    if Config.SpawnInVehicle then
-        TaskWarpPedIntoVehicle(cache.ped, vehEntity, -1)
-    else
-        if Config.SpawnLocked then
-            SetVehicleDoorsLocked(vehEntity, 2)
-            local netId = NetworkGetNetworkIdFromEntity(vehEntity)
-            if netId and netId ~= 0 then
-                TriggerServerEvent('mm_carkeys:server:setVehLockState', netId, 2)
-            end
-        end
-        SetVehicleEngineOn(vehEntity, false, false, true)
-        SetVehicleLights(vehEntity, 0)
+    if not vehData.mods then vehData.mods = {} end
+    if type(vehData.mods) == 'string' then
+        vehData.mods = json.decode(vehData.mods) or {}
     end
+    vehData.mods.plate = vehData.plate or data.plate
+
+    local vehEntity = utils.createPlyVeh(vehData.model, data.coords, false, true, vehData.mods)
+    if not vehEntity or not DoesEntityExist(vehEntity) then
+        return
+    end
+
+    if vehData.mods and type(vehData.mods) == 'table' and next(vehData.mods) then
+        pcall(function() lib.setVehicleProperties(vehEntity, vehData.mods) end)
+    end
+
+    local cleanPlate = utils.string.trim(vehData.plate)
+    if Config.SpawnLocked and not Config.SpawnInVehicle then
+        SetVehicleDoorsLocked(vehEntity, 2)
+        local netId = NetworkGetNetworkIdFromEntity(vehEntity)
+        if netId and netId ~= 0 then
+            TriggerServerEvent('mm_carkeys:server:setVehLockState', netId, 2)
+        end
+    else
+        SetVehicleDoorsLocked(vehEntity, 1)
+    end
+
     if vehData.deformation then
         Deformation.set(vehEntity, vehData.deformation)
     end
@@ -40,12 +50,19 @@ local function spawnvehicle ( data )
     utils.setFuel(vehEntity, vehData.fuel)
     TriggerServerEvent("vanguard_garage:server:removeFromPoliceImpound", vehData.plate)
     if GetResourceState('mri_Qcarkeys') == 'started' then
-        if Config.GiveKeys.onspawn and not exports.mri_Qcarkeys:HavePermanentKey(cleanPlate) then
-            exports.mri_Qcarkeys:GiveKeyItem(cleanPlate)
+        if cleanPlate and cleanPlate ~= "" then
+            TriggerEvent('mm_carkeys:client:addtempkeys', cleanPlate)
         end
         if not Config.SpawnInVehicle then
             Entity(vehEntity).state:set('keysIn', false, true)
         end
+    end
+
+    if Config.SpawnInVehicle then
+        TaskWarpPedIntoVehicle(cache.ped, vehEntity, -1)
+    else
+        SetVehicleEngineOn(vehEntity, false, false, true)
+        SetVehicleLights(vehEntity, 0)
     end
 end
 

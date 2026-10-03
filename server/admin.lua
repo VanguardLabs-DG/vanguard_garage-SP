@@ -80,7 +80,7 @@ local function hasGaragePermission(source)
         return true
     end
     local ok, hasPerm = pcall(function()
-        return exports.qbx_core:HasPermission(source, 'admin')
+        return exports.qbx_core:HasPermission(source, 'admin') or exports.qbx_core:HasPermission(source, 'god')
     end)
     if ok and hasPerm then return true end
     return false
@@ -293,7 +293,19 @@ local function executeGarageAction(action, data, expectedRevision, source)
             end
         end
 
-        -- Checa duplicata
+        -- Valida espaçamento mínimo entre vagas de spawn (mínimo 0.5m / 0.25m²)
+        for i = 1, #spawnsList - 1 do
+            for j = i + 1, #spawnsList do
+                if distanceSquared(spawnsList[i], spawnsList[j]) < 0.25 then
+                    return response(false, "spawns_too_close", string.format("As vagas %d e %d estão muito próximas (mínimo 0.5m de distância entre si).", i, j))
+                end
+            end
+        end
+
+        -- Checa duplicata no cache em memória (garagens estáticas) e no banco de dados
+        if GarageZone and GarageZone[garageId] then
+            return response(false, "duplicate", "Já existe uma garagem carregada com esse identificador: " .. garageId)
+        end
         local duplicate = MySQL.scalar.await("SELECT id FROM custom_garages WHERE garage_id = ? LIMIT 1", { garageId })
         if duplicate then
             return response(false, "duplicate", "Já existe uma garagem com esse identificador: " .. garageId)
@@ -413,6 +425,15 @@ local function executeGarageAction(action, data, expectedRevision, source)
         for i, sp in ipairs(spawnsList) do
             if distanceSquared(marker, sp) > 100.0 * 100.0 then
                 return response(false, "spawn_too_far", string.format("A vaga %d de spawn deve ficar a no máximo 100 metros da entrada.", i))
+            end
+        end
+
+        -- Valida espaçamento mínimo entre vagas de spawn (mínimo 0.5m / 0.25m²)
+        for i = 1, #spawnsList - 1 do
+            for j = i + 1, #spawnsList do
+                if distanceSquared(spawnsList[i], spawnsList[j]) < 0.25 then
+                    return response(false, "spawns_too_close", string.format("As vagas %d e %d estão muito próximas (mínimo 0.5m de distância entre si).", i, j))
+                end
             end
         end
 

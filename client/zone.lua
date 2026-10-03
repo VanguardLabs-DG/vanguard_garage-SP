@@ -68,6 +68,7 @@ function gzf.refresh ()
         for k, v in pairs(CreatedZone) do
             v:remove()
         end
+        CreatedZone = {}
     end
 
     for k, v in pairs(GarageZone) do

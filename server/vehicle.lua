@@ -27,14 +27,15 @@ vehFuncS.gvp = vehFunc.gvp
 ---@param plate any
 ---@return table | boolean
 function vehFuncS.govbp(plate)
+    if not plate or type(plate) ~= "string" then return false end
     local cleanPlate = utils.string.trim(plate)
-    if not cleanPlate then return false end
+    if not cleanPlate or cleanPlate == "" then return false end
+    local normPlate = cleanPlate:gsub("%s+", ""):upper()
 
     -- 1. Checa registro em memória primeiro
-    local cachedEntity = SpawnedVehicleEntities and SpawnedVehicleEntities[cleanPlate]
-    if cachedEntity and DoesEntityExist(cachedEntity) then
-        local engineHealth = GetVehicleEngineHealth(cachedEntity)
-        if engineHealth > 0 then
+    if SpawnedVehicleEntities then
+        local cachedEntity = SpawnedVehicleEntities[cleanPlate] or SpawnedVehicleEntities[normPlate]
+        if cachedEntity and DoesEntityExist(cachedEntity) then
             return {
                 exist = true,
                 coords = GetEntityCoords(cachedEntity)
@@ -44,18 +45,35 @@ function vehFuncS.govbp(plate)
 
     -- 2. Fallback em todos os veículos do servidor
     local veh = GetAllVehicles()
-    for i=1, #veh do
+    for i = 1, #veh do
         local entity = veh[i]
-        local Plate = utils.getPlate(entity)
-        if Plate == cleanPlate then
-            local engineHealth = GetVehicleEngineHealth(entity)
-            if engineHealth <= 0 then
-                return false
+        if DoesEntityExist(entity) then
+            -- 2.1 Checa State Bag (trackedPlate ou plate)
+            local stateBag = Entity(entity).state
+            local tracked = stateBag and (stateBag.trackedPlate or stateBag.plate)
+            if tracked and tostring(tracked):gsub("%s+", ""):upper() == normPlate then
+                if SpawnedVehicleEntities then
+                    SpawnedVehicleEntities[cleanPlate] = entity
+                    SpawnedVehicleEntities[normPlate] = entity
+                end
+                return {
+                    exist = true,
+                    coords = GetEntityCoords(entity)
+                }
             end
-            return {
-                exist = DoesEntityExist(entity),
-                coords = GetEntityCoords(entity)
-            }
+
+            -- 2.2 Checa placa nativa do veículo
+            local raw = GetVehicleNumberPlateText(entity)
+            if raw and raw ~= "" and raw:gsub("%s+", ""):upper() == normPlate then
+                if SpawnedVehicleEntities then
+                    SpawnedVehicleEntities[cleanPlate] = entity
+                    SpawnedVehicleEntities[normPlate] = entity
+                end
+                return {
+                    exist = true,
+                    coords = GetEntityCoords(entity)
+                }
+            end
         end
     end
     return false

@@ -1056,6 +1056,20 @@ Config.Garages = {
         spawn_h = 41.2536,
         spawns = nil,
     },
+    ["dpm2"] = {
+        garage_id = "dpm2",
+        name = "Garage",
+        permission = "",
+        payment = false,
+        marker_x = 889.724,
+        marker_y = -2262.29,
+        marker_z = 29.64,
+        spawn_x = 894.427,
+        spawn_y = -2265.86,
+        spawn_z = 29.64,
+        spawn_h = 82.1293,
+        spawns = nil,
+    },
 }
 
 -- ==========================================================================
@@ -1113,7 +1127,7 @@ GarageZone["Pátio do Detran"] = {
     interaction = "keypressed"
 }
 
--- Adiciona as 75 garagens do Config.Garages
+-- Adiciona as 76 garagens do Config.Garages
 for gid, g in pairs(Config.Garages) do
     local markerCoord = vec3(g.marker_x, g.marker_y, g.marker_z)
     local spawns = {}

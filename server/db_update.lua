@@ -25,7 +25,37 @@ AddEventHandler('onResourceStart', function(resource)
         end
         -- Restaura veículos que ficaram travados em state = 3 (/dv ou destruição antiga)
         pcall(function()
-            MySQL.update("UPDATE player_vehicles SET state = 1, engine = 1000, body = 1000 WHERE state = 3", {})
+            local affected3 = MySQL.update.await("UPDATE player_vehicles SET state = 1, engine = 1000, body = 1000 WHERE state = 3", {})
+            if affected3 and affected3 > 0 then
+                print(string.format('^2[vanguard_garage]^7 %d veículos que estavam destruídos foram restaurados.', affected3))
+            end
+        end)
+
+        -- Retorna veículos fora da garagem (state = 0) para a garagem (state = 1) no reinício do servidor
+        pcall(function()
+            local affected0 = MySQL.update.await("UPDATE player_vehicles SET state = 1 WHERE state = 0", {})
+            if affected0 and affected0 > 0 then
+                print(string.format('^2[vanguard_garage]^7 %d veículos fora da garagem foram retornados à garagem com sucesso.', affected0))
+            end
+            -- Garante garagem padrão caso o campo esteja nulo ou vazio
+            MySQL.update.await("UPDATE player_vehicles SET garage = '100002' WHERE (garage IS NULL OR garage = '') AND state = 1", {})
         end)
     end
 end)
+
+local function restoreVehiclesToGarage()
+    pcall(function()
+        MySQL.update.await("UPDATE player_vehicles SET state = 1 WHERE state = 0", {})
+    end)
+end
+
+AddEventHandler('onResourceStop', function(resource)
+    if resource == GetCurrentResourceName() then
+        restoreVehiclesToGarage()
+    end
+end)
+
+AddEventHandler('txAdmin:events:serverShuttingDown', function()
+    restoreVehiclesToGarage()
+end)
+

@@ -3,530 +3,979 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MRI Garage - Luxury Edition</title>
+    <title>Garagem - Vanguard</title>
+    <!-- Alpine.js -->
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js" defer></script>
-    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@100..800&family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <!-- Google Fonts: Montserrat & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,700;1,800;1,900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
     <style>
-        /* ---- Design Tokens MRI_ESC ---- */
+        /* ---- RESET & CORE DESIGN TOKENS ---- */
         :root {
-            --d900: #05050E;
-            --d800: #0A0A18;
-            --blue: #0094E1;
-            --blue-glow: rgba(0, 148, 225, 0.6);
-            --orange: #FF8F00;
-            --orange-glow: rgba(255, 143, 0, 0.4);
-            --t1: #FFFFFF;
-            --t2: #D1D1FF;
-            --t3: #8B8BB9;
-            --glass-b: rgba(255, 255, 255, 0.08);
-            --green: #00E676;
-            --red: #FF4757;
+            --bg-modal: #101114;
+            --bg-left: #0F1013;
+            --bg-right: #0C0D10;
+            --bg-card: #141519;
+            --bg-card-hover: #191B20;
+            --bg-input: #15161A;
+            --border-subtle: rgba(255, 255, 255, 0.06);
+            --border-focus: rgba(255, 184, 0, 0.6);
+            
+            --yellow: #FFB800;
+            --yellow-hover: #E5A600;
+            --yellow-glow: rgba(255, 184, 0, 0.25);
+            
+            --red-esc: #DC2626;
+            --red-esc-hover: #B91C1C;
+            
+            --track-bar: #202126;
+            --text-white: #FFFFFF;
+            --text-muted: #71717A;
+            --text-dim: #A1A1AA;
+            
+            --radius-lg: 18px;
+            --radius-md: 10px;
+            --radius-sm: 8px;
         }
 
-        /* ---- Custom Scrollbar ---- */
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--blue); }
-
-        /* ---- Optimized Layout & Animations ---- */
-        body, html { 
-            margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; 
-            background: transparent !important; font-family: 'Sora', 'Urbanist', sans-serif; 
-            -webkit-user-select: none; user-select: none; 
-            image-rendering: -webkit-optimize-contrast; /* Melhor nitidez para NUI */
-        }
-        [x-cloak] { display: none !important; }
-
-        .app-wrapper {
-            position: fixed; inset: 0;
-            display: flex; justify-content: flex-start;
-            z-index: 10;
-            perspective: 1000px; /* Prepara para efeitos 3D se necessário */
-        }
-
-        .sidebar {
-            width: 700px; /* Reduzido levemente para otimizar preenchimento */
-            height: 100vh;
-            background: linear-gradient(to right, 
-                rgba(5, 5, 14, 1.0) 0%, 
-                rgba(5, 5, 14, 1.0) 350px, 
-                rgba(5, 5, 14, 0.95) 450px,
-                rgba(5, 5, 14, 0.4) 600px,
-                transparent 100%);
-            display: flex; flex-direction: column;
-            position: relative;
-            will-change: transform, opacity;
-            transform: translate3d(0,0,0); /* Força camada de hardware */
-            backface-visibility: hidden;
-            animation: slideIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-            overflow: hidden;
-            contain: content; /* Isola o elemento para o navegador não recalcular o resto da página */
-        }
-
-        .sidebar-glow {
-            position: absolute;
-            top: 0; left: 0;
-            width: 250px;
-            height: 100%;
-            background: linear-gradient(to right, rgba(0, 148, 225, 0.15) 0%, transparent 100%);
-            pointer-events: none;
-            z-index: 1;
-            transition: background 0.4s ease;
-        }
-        .is-impound .sidebar-glow {
-            background: linear-gradient(to right, rgba(255, 143, 0, 0.12) 0%, transparent 100%);
-        }
-
-        .sidebar-line {
-            position: absolute;
-            top: 0; left: 0;
-            width: 3px;
-            height: 100%;
-            background: var(--blue);
-            box-shadow: 0 0 15px 1px var(--blue-glow);
-            z-index: 10;
-            transition: background 0.4s, box-shadow 0.4s;
-        }
-        .is-impound .sidebar-line {
-            background: var(--orange);
-            box-shadow: 0 0 15px 1px var(--orange-glow);
-        }
-
-        @keyframes slideIn { 
-            from { transform: translate3d(-100%, 0, 0); opacity: 0; } 
-            to { transform: translate3d(0, 0, 0); opacity: 1; } 
-        }
-
-        .content-container {
-            width: 400px;
-            height: 100%;
-            display: flex; flex-direction: column;
-            position: relative;
-            z-index: 2;
-            padding-left: 4px;
-        }
-
-        .header { padding: 45px 35px 25px; }
-        .logo-wordmark { font-size: 24px; font-weight: 900; letter-spacing: 4px; color: var(--blue); text-shadow: 0 0 15px var(--blue-glow); transition: 0.4s; }
-        .is-impound .logo-wordmark { color: var(--orange); text-shadow: 0 0 15px var(--orange-glow); }
-        .logo-subtitle { font-size: 9px; font-weight: 600; letter-spacing: 3px; color: var(--t3); text-transform: uppercase; margin-top: 2px; }
-
-        .search-area { padding: 0 35px; margin-bottom: 25px; }
-        .search-input-wrap {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid var(--glass-b);
-            border-radius: 12px;
-            display: flex; align-items: center; padding: 0 16px;
-            transition: border-color 0.3s;
-        }
-        .search-input-wrap:focus-within { border-color: rgba(0, 148, 225, 0.4); }
-        .search-input-wrap input {
-            background: transparent; border: none; padding: 14px 10px;
-            color: var(--t1); width: 100%; outline: none; font-family: inherit; font-size: 13px;
-        }
-
-        .vehicle-list { 
-            flex: 1; overflow-y: auto; padding: 0 25px 20px 35px; 
-            contain: layout; /* Otimiza scroll e renderização de lista */
-        }
-        
-        .veh-card {
-            background: rgba(10, 10, 24, 0.85); /* Like ESC */
-            border: 1px solid var(--glass-b);
-            border-radius: 14px; padding: 16px 20px; margin-bottom: 12px;
-            cursor: pointer; transition: 0.25s cubic-bezier(0.2, 1, 0.2, 1);
-            display: flex; align-items: center; justify-content: flex-start; gap: 15px;
-            position: relative;
-            backface-visibility: hidden;
-            will-change: transform, background;
-        }
-        .veh-card:hover { transform: translateY(-3px); border-color: rgba(255, 255, 255, 0.12); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35); }
-        .veh-card.active { border-color: rgba(0, 148, 225, 0.35); background: linear-gradient(90deg, rgba(0, 148, 225, 0.15), rgba(10, 10, 24, 0.95)); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35), 0 0 30px rgba(0, 148, 225, 0.15); }
-        .is-impound .veh-card.active { border-color: rgba(255, 143, 0, 0.35); background: linear-gradient(90deg, rgba(255, 143, 0, 0.15), rgba(10, 10, 24, 0.95)); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35), 0 0 30px rgba(255, 143, 0, 0.15); }
-        
-        .veh-card-icon {
-            width: 38px; height: 38px; border-radius: 10px;
-            background: rgba(0, 148, 225, 0.1); color: var(--blue);
-            display: flex; align-items: center; justify-content: center; font-size: 16px;
-            flex-shrink: 0; transition: 0.3s;
-        }
-        .is-impound .veh-card-icon { background: rgba(255, 143, 0, 0.1); color: var(--orange); }
-        .veh-card.active .veh-card-icon { background: var(--blue-glow); color: #fff; box-shadow: 0 0 15px var(--blue-glow); }
-        .is-impound .veh-card.active .veh-card-icon { background: var(--orange-glow); color: #fff; box-shadow: 0 0 15px var(--orange-glow); }
-
-        .veh-card.active::before { 
-            content: ''; position: absolute; left: 0; top: 25%; height: 50%; width: 3px; 
-            background: var(--blue); border-radius: 0 4px 4px 0; box-shadow: 0 0 12px var(--blue); 
-        }
-        .is-impound .veh-card.active::before { background: var(--orange); box-shadow: 0 0 12px var(--orange); }
-
-        .veh-card-info { flex: 1; }
-        .veh-card-info h3 { font-size: 14px; font-weight: 800; letter-spacing: 1px; margin: 0; color: var(--t1); text-transform: uppercase; }
-        .veh-card-info p { font-size: 10px; font-weight: 600; color: var(--t3); margin: 3px 0 0; font-family: 'Urbanist'; letter-spacing: 2px; }
-
-        .price-badge {
-            background: rgba(255, 143, 0, 0.1);
-            color: var(--orange);
-            border: 1px solid var(--orange-glow);
-            padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 900;
-        }
-
-        /* Details Panel */
-        .details-panel {
-            background: linear-gradient(180deg, var(--d900) 0%, #080814 100%);
-            padding: 35px 30px;
-            border-top: 2px solid var(--blue);
-            border-radius: 35px 35px 0 0;
-            box-shadow: 0 -15px 40px rgba(0, 148, 225, 0.25), 0 -25px 60px rgba(0,0,0,0.9);
-            position: absolute; bottom: 0; left: 0;
-            width: 100%;
+        * {
             box-sizing: border-box;
-            z-index: 5;
-            max-height: 65vh;
-            overflow-y: auto;
-            will-change: transform, opacity;
-            backface-visibility: hidden;
-            animation: slideUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-            contain: layout;
-            transition: border-color 0.4s;
+            margin: 0;
+            padding: 0;
+            font-family: 'Montserrat', sans-serif;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
-        .is-impound .details-panel { 
-            border-top-color: var(--orange); 
-            box-shadow: 0 -15px 40px rgba(255, 143, 0, 0.25), 0 -25px 60px rgba(0,0,0,0.9);
-        }
-
-        @keyframes slideUp { 
-            from { transform: translate3d(0, 100%, 0); opacity: 0; } 
-            to { transform: translate3d(0, 0, 0); opacity: 1; } 
-        }
-
-        .veh-name-title { 
-            font-size: 20px; font-weight: 900; letter-spacing: -0.5px; color: var(--t1); margin: 0; 
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-            max-width: 100%; display: block; text-align: center;
-        }
-        .details-header-sep {
-            height: 1px; width: 100%;
-            background: linear-gradient(90deg, transparent 5%, rgba(255, 255, 255, 0.4) 50%, transparent 95%);
-            margin: 12px 0;
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.15);
-        }
-        .veh-plate-pill { 
-            position: relative;
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 135px; height: 46px;
-            filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));
-        }
-        .veh-plate-pill img { 
-            width: 100%; height: 100%; object-fit: contain; 
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: transparent !important;
             image-rendering: -webkit-optimize-contrast;
         }
-        .veh-plate-pill span {
-            position: absolute;
-            top: 57%; /* Precision centering in the white area */
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #111;
-            font-size: 19px; font-weight: 800;
-            letter-spacing: 2.5px;
-            text-transform: uppercase;
-            text-shadow: 0 0 1px rgba(0,0,0,0.1);
-        }
-        .is-impound .veh-plate-pill { filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5)); }
 
-        .plate-section-wrap {
-            width: 100%; margin: 20px 0; padding: 18px 0;
-            display: flex; justify-content: center; align-items: center;
-            border-top: 1px solid rgba(255, 255, 255, 0.25);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.25);
-            background: rgba(0, 148, 225, 0.12);
+        [x-cloak] { display: none !important; }
+
+        /* ---- SCROLLBAR ---- */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 184, 0, 0.5); }
+
+        /* ---- APP CONTAINER ---- */
+        .app-wrapper {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.45);
+            animation: fadeIn 0.25s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* ---- MAIN MODAL (1:1 with reference) ---- */
+        .app-modal {
+            width: 1040px;
+            height: 620px;
+            max-width: 95vw;
+            max-height: 94vh;
+            background: var(--bg-modal);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), 0 0 40px rgba(0, 0, 0, 0.5);
+            display: flex;
+            overflow: hidden;
             position: relative;
-            /* Creates the perfect fade at the ends for everything inside */
-            -webkit-mask-image: linear-gradient(90deg, transparent, black 15%, black 85%, transparent);
-            mask-image: linear-gradient(90deg, transparent, black 15%, black 85%, transparent);
         }
-        .is-impound .plate-section-wrap {
-            background: rgba(255, 143, 0, 0.12);
-        }
-        .preview-box { 
-            height: 140px; display: flex; align-items: center; justify-content: center; margin: 15px 0 25px; 
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 16px;
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
-        }
-        .preview-box img { max-width: 90%; max-height: 90%; filter: drop-shadow(0 15px 30px rgba(0,0,0,0.5)); }
 
-        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
-        .stat-card {
-            background: rgba(10, 10, 24, 0.95);
-            border-radius: 10px; padding: 10px 12px;
-            display: flex; align-items: center; gap: 10px;
-            transition: all 0.3s cubic-bezier(0.2, 1, 0.2, 1);
+        /* ========================================================
+           LEFT PANEL: SHOWCASE, STATS, ACTIONS
+           ======================================================== */
+        .left-panel {
+            width: 420px;
+            height: 100%;
+            padding: 22px 24px;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-left);
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
             position: relative;
             overflow: hidden;
         }
-        .stat-card:hover { transform: translateY(-3px); }
-        
-        .stat-icon-wrap {
-            width: 32px; height: 32px; border-radius: 8px;
-            display: flex; justify-content: center; align-items: center; font-size: 13px;
+
+        /* Left Header */
+        .left-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 8px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .header-icon {
+            color: var(--yellow);
+            font-size: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        .header-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header-title {
+            font-size: 16px;
+            font-weight: 900;
+            color: var(--text-white);
+            letter-spacing: 0.5px;
+            line-height: 1.15;
+            text-transform: uppercase;
+        }
+
+        .header-subtitle {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-muted);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        /* Showcase Preview - Estendida com fade-out nas extremidades (sem moldura) */
+        .preview-showcase {
+            width: calc(100% + 48px);
+            margin-left: -24px;
+            margin-right: -24px;
+            margin-top: -12px;
+            margin-bottom: -10px;
+            height: 245px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            -webkit-mask-image: linear-gradient(180deg, 
+                transparent 0%, 
+                rgba(0, 0, 0, 0.25) 5%,
+                rgba(0, 0, 0, 0.75) 14%, 
+                #000 24%, 
+                #000 74%, 
+                rgba(0, 0, 0, 0.75) 86%, 
+                rgba(0, 0, 0, 0.25) 95%, 
+                transparent 100%
+            );
+            mask-image: linear-gradient(180deg, 
+                transparent 0%, 
+                rgba(0, 0, 0, 0.25) 5%,
+                rgba(0, 0, 0, 0.75) 14%, 
+                #000 24%, 
+                #000 74%, 
+                rgba(0, 0, 0, 0.75) 86%, 
+                rgba(0, 0, 0, 0.25) 95%, 
+                transparent 100%
+            );
             flex-shrink: 0;
         }
-        
-        /* Vibrant Color Diversity for Icons & Persistent Borders */
-        .si-gold { background: rgba(255, 170, 0, 0.1); color: #FFAA00; }
-        .stat-card-gold { border: 1px solid rgba(255, 170, 0, 0.2) !important; }
-        .stat-card-gold:hover { border-color: rgba(255, 170, 0, 0.6) !important; box-shadow: 0 0 25px rgba(255, 170, 0, 0.2); }
 
-        .si-blue { background: rgba(0, 148, 225, 0.1); color: var(--blue); }
-        .stat-card-blue { border: 1px solid rgba(0, 148, 225, 0.2) !important; }
-        .stat-card-blue:hover { border-color: rgba(0, 148, 225, 0.6) !important; box-shadow: 0 0 25px rgba(0, 148, 225, 0.2); }
-
-        .si-purple { background: rgba(168, 85, 247, 0.1); color: #A855F7; }
-        .stat-card-purple { border: 1px solid rgba(168, 85, 247, 0.2) !important; }
-        .stat-card-purple:hover { border-color: rgba(168, 85, 247, 0.6) !important; box-shadow: 0 0 25px rgba(168, 85, 247, 0.2); }
-
-        .si-green { background: rgba(0, 230, 118, 0.1); color: var(--green); }
-        .stat-card-green { border: 1px solid rgba(0, 230, 118, 0.2) !important; }
-        .stat-card-green:hover { border-color: rgba(0, 230, 118, 0.6) !important; box-shadow: 0 0 25px rgba(0, 230, 118, 0.2); }
-
-        .si-red { background: rgba(255, 71, 87, 0.1); color: var(--red); }
-        .stat-card-red { border: 1px solid rgba(255, 71, 87, 0.2) !important; }
-        .stat-card-red:hover { border-color: rgba(255, 71, 87, 0.6) !important; box-shadow: 0 0 25px rgba(255, 71, 87, 0.2); }
-
-        .is-impound .stat-icon-wrap { background: rgba(255, 143, 0, 0.1); color: var(--orange); }
-        .is-impound .stat-card { border: 1px solid rgba(255, 143, 0, 0.2) !important; }
-        .is-impound .stat-card:hover { border-color: rgba(255, 143, 0, 0.6) !important; box-shadow: 0 0 25px rgba(255, 143, 0, 0.2); }
-        
-        .stat-info { flex: 1; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
-        .stat-label { font-size: 8px; font-weight: 800; color: var(--t3); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 2px; }
-        .stat-value { 
-            font-size: 14px; font-weight: 900; color: var(--t1); letter-spacing: 0.5px;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        .preview-showcase .stage-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center 54%;
+            display: block;
+            pointer-events: none;
         }
 
-        .btn-withdraw {
-            width: 100%; padding: 16px; border-radius: 12px; border: none;
-            background: linear-gradient(135deg, var(--blue), #1e40af);
-            color: #fff; font-weight: 900; font-size: 13px;
-            cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
-            transition: all 0.3s cubic-bezier(0.2, 1, 0.2, 1); text-transform: uppercase; letter-spacing: 2px;
-            box-shadow: 0 12px 30px rgba(0, 148, 225, 0.35);
-            backface-visibility: hidden;
+        /* Vehicle Identity (VEÍCULO + Placa Mercosul) */
+        .preview-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            margin: 0 0 14px;
+            position: relative;
+            z-index: 2;
         }
-        .btn-withdraw:hover:not(:disabled) { transform: translate3d(0, -5px, 0); box-shadow: 0 20px 45px rgba(0, 148, 225, 0.55); filter: brightness(1.15); }
-        .btn-withdraw:active { transform: translate3d(0, 0, 0); }
-        .btn-withdraw:disabled { opacity: 0.2; cursor: not-allowed; filter: grayscale(1); }
 
-        .btn-impound {
-            background: linear-gradient(135deg, var(--orange), #c2410c);
-            box-shadow: 0 15px 40px rgba(255, 143, 0, 0.4);
+        .veh-title {
+            font-size: 24px;
+            font-weight: 900;
+            font-style: italic;
+            color: var(--text-white);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: center;
+            line-height: 1.1;
         }
-        .btn-impound:hover:not(:disabled) { box-shadow: 0 20px 45px rgba(255, 143, 0, 0.55); }
 
-        .btn-store {
-            width: 100%; padding: 16px; border-radius: 12px; border: none;
-            background: linear-gradient(135deg, #10b981, #047857);
-            color: #fff; font-weight: 900; font-size: 13px;
-            cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
-            transition: all 0.3s cubic-bezier(0.2, 1, 0.2, 1); text-transform: uppercase; letter-spacing: 2px;
-            box-shadow: 0 12px 30px rgba(16, 185, 129, 0.35);
-            margin-top: 10px;
-            backface-visibility: hidden;
+        /* ---- MERCOSUL LICENSE PLATE COMPONENT ---- */
+        .plate-mercosul {
+            display: inline-flex;
+            flex-direction: column;
+            width: 78px;
+            height: 27px;
+            border-radius: 3px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+            border: 1px solid #1a1a1a;
+            flex-shrink: 0;
+            background: #ffffff;
         }
-        .btn-store:hover:not(:disabled) { transform: translate3d(0, -5px, 0); box-shadow: 0 20px 45px rgba(16, 185, 129, 0.55); filter: brightness(1.15); }
-        .btn-store:active { transform: translate3d(0, 0, 0); }
-        .btn-store:disabled { opacity: 0.25; cursor: not-allowed; filter: grayscale(1); box-shadow: none; }
 
-        .hint-text { margin-top: 20px; text-align: center; font-size: 9px; font-weight: 800; color: var(--t3); letter-spacing: 2px; text-transform: uppercase; opacity: 0.7; }
+        .plate-mercosul .plate-top {
+            height: 9px;
+            background: #003399;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 0 3px;
+        }
 
-        #tags-iframe { position: fixed; inset: 0; border: none; pointer-events: none; z-index: 100; }
+        .plate-mercosul .plate-top .plate-country {
+            color: #ffffff;
+            font-size: 6px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            line-height: 1;
+        }
 
-        /* ---- Vanguard Progress ---- */
+        .plate-mercosul .plate-top .plate-flag {
+            position: absolute;
+            right: 3px;
+            width: 8px;
+            height: 5px;
+            display: flex;
+        }
+
+        .plate-mercosul .plate-bottom {
+            flex: 1;
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 0 3px;
+        }
+
+        .plate-mercosul .plate-bottom .plate-br {
+            position: absolute;
+            left: 3px;
+            color: #000000;
+            font-size: 5px;
+            font-weight: 900;
+            letter-spacing: 0.5px;
+            line-height: 1;
+        }
+
+        .plate-mercosul .plate-bottom .plate-text {
+            color: #000000;
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            font-family: 'Montserrat', sans-serif;
+            line-height: 1;
+        }
+
+        /* Large Mercosul for Showcase */
+        .plate-mercosul.plate-large {
+            width: 98px;
+            height: 33px;
+            border-radius: 4px;
+        }
+
+        .plate-mercosul.plate-large .plate-top {
+            height: 10px;
+        }
+
+        .plate-mercosul.plate-large .plate-top .plate-country {
+            font-size: 7px;
+            letter-spacing: 1.5px;
+        }
+
+        .plate-mercosul.plate-large .plate-top .plate-flag {
+            width: 10px;
+            height: 6px;
+            right: 4px;
+        }
+
+        .plate-mercosul.plate-large .plate-bottom .plate-br {
+            font-size: 6px;
+            left: 4px;
+        }
+
+        .plate-mercosul.plate-large .plate-bottom .plate-text {
+            font-size: 13px;
+            letter-spacing: 1.5px;
+        }
+
+        /* ---- VEHICLE STATS (4 rows) ---- */
+        .stats-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .stat-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .stat-icon {
+            width: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--yellow);
+            font-size: 15px;
+            flex-shrink: 0;
+        }
+
+        .stat-icon-img {
+            width: 17px;
+            height: 17px;
+            object-fit: contain;
+            filter: invert(86%) sepia(49%) saturate(497%) hue-rotate(352deg) brightness(103%) contrast(104%);
+        }
+
+        .stat-label {
+            width: 82px;
+            font-size: 10.5px;
+            font-weight: 800;
+            color: var(--text-white);
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+
+        .stat-bar-track {
+            flex: 1;
+            height: 7px;
+            background: var(--track-bar);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .stat-bar-fill {
+            height: 100%;
+            background: var(--yellow);
+            border-radius: 4px;
+            transition: width 0.3s cubic-bezier(0.2, 1, 0.2, 1);
+        }
+
+        .stat-val {
+            width: 38px;
+            text-align: right;
+            font-size: 10.5px;
+            font-weight: 800;
+            color: var(--text-white);
+            flex-shrink: 0;
+        }
+
+        /* ---- ACTION BUTTONS (Bottom Left) ---- */
+        .actions-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: auto;
+        }
+
+        .btn-primary {
+            width: 100%;
+            height: 42px;
+            background: var(--yellow);
+            color: #090A0C;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-weight: 900;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.2s cubic-bezier(0.2, 1, 0.2, 1);
+            box-shadow: 0 4px 14px rgba(255, 184, 0, 0.22);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--yellow-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(255, 184, 0, 0.35);
+        }
+
+        .btn-primary:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            width: 100%;
+            height: 42px;
+            background: #17181D;
+            color: var(--text-white);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.2s cubic-bezier(0.2, 1, 0.2, 1);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #202228;
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .btn-secondary:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .btn-secondary:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+
+        /* ========================================================
+           RIGHT PANEL: SEARCH, LIST, CLOSE
+           ======================================================== */
+        .right-panel {
+            flex: 1;
+            height: 100%;
+            padding: 22px 24px;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-right);
+            overflow: hidden;
+        }
+
+        /* Top Action Bar */
+        .right-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .search-wrap {
+            flex: 1;
+            height: 40px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            padding: 0 14px;
+            gap: 10px;
+            transition: border-color 0.2s;
+        }
+
+        .search-wrap:focus-within {
+            border-color: var(--border-focus);
+        }
+
+        .search-wrap i {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .search-wrap input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-white);
+            font-size: 13px;
+            font-weight: 500;
+            width: 100%;
+        }
+
+        .search-wrap input::placeholder {
+            color: #555760;
+        }
+
+        .btn-filter {
+            width: 40px;
+            height: 40px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            color: var(--text-dim);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .btn-filter:hover {
+            color: var(--text-white);
+            border-color: rgba(255, 255, 255, 0.15);
+            background: #1E2026;
+        }
+
+        .btn-esc {
+            height: 40px;
+            padding: 0 16px;
+            background: var(--red-esc);
+            border: none;
+            border-radius: var(--radius-sm);
+            color: var(--text-white);
+            font-size: 13px;
+            font-weight: 900;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-esc:hover {
+            background: var(--red-esc-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-esc:active {
+            transform: translateY(0);
+        }
+
+        /* Vehicle List */
+        .vehicle-list {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        /* Vehicle Card Item */
+        .veh-card {
+            height: 64px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.2, 1, 0.2, 1);
+            position: relative;
+        }
+
+        .veh-card:hover {
+            background: var(--bg-card-hover);
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .veh-card.active {
+            border: 1.5px solid var(--yellow);
+            box-shadow: 0 0 12px var(--yellow-glow);
+            background: #17181D;
+        }
+
+        .veh-thumb-wrap {
+            width: 82px;
+            height: 46px;
+            border-radius: 6px;
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .veh-thumb-img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.45));
+            display: block;
+        }
+
+        .veh-card-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+            justify-content: center;
+        }
+
+        .veh-card-name {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--text-white);
+            line-height: 1.2;
+        }
+
+        .price-badge {
+            background: rgba(255, 184, 0, 0.1);
+            color: var(--yellow);
+            border: 1px solid rgba(255, 184, 0, 0.3);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .veh-card-arrow {
+            color: var(--text-muted);
+            font-size: 14px;
+            transition: color 0.2s;
+            margin-left: 4px;
+        }
+
+        .veh-card.active .veh-card-arrow {
+            color: var(--text-white);
+        }
+
+        .veh-card:hover .veh-card-arrow {
+            color: var(--text-dim);
+        }
+
+        /* Empty State */
+        .empty-list {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            color: var(--text-muted);
+            padding: 40px 0;
+        }
+
+        .empty-list i {
+            font-size: 40px;
+            opacity: 0.3;
+        }
+
+        .empty-list p {
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        /* Hidden tags iframe preserved for backend compatibility */
+        #tags-iframe {
+            position: fixed;
+            inset: 0;
+            border: none;
+            pointer-events: none;
+            z-index: 50;
+            display: none;
+        }
+
+        /* Vanguard Parking Progress */
         .vanguard-progress-wrap {
-            position: fixed; bottom: 50px; left: 50%;
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
             transform: translateX(-50%);
-            width: 300px; padding: 20px;
-            background: rgba(5, 5, 14, 0.85);
-            border: 1px solid var(--glass-b);
-            border-radius: 16px;
+            width: 320px;
+            padding: 16px 20px;
+            background: rgba(16, 17, 20, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-md);
             backdrop-filter: blur(12px);
-            display: flex; flex-direction: column; gap: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
             z-index: 1000;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            animation: progressPop 0.3s cubic-bezier(0.2, 1, 0.2, 1);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
         }
-
-        @keyframes progressPop { from { opacity: 0; transform: translate(-50%, 20px); } }
 
         .progress-label {
-            font-size: 10px; font-weight: 800; color: var(--t3);
-            text-transform: uppercase; letter-spacing: 2px; text-align: center;
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--text-white);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            text-align: center;
         }
 
         .vanguard-bar-bg {
-            height: 4px; width: 100%;
-            background: rgba(255,255,255,0.05);
-            border-radius: 2px; overflow: hidden;
-            position: relative;
+            height: 5px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 3px;
+            overflow: hidden;
         }
 
         .vanguard-bar-fill {
-            height: 100%; width: 0%;
-            background: var(--blue);
-            box-shadow: 0 0 10px var(--blue-glow);
+            height: 100%;
+            width: 0%;
+            background: var(--yellow);
+            box-shadow: 0 0 10px var(--yellow-glow);
             transition: width 0.1s linear;
+        }
+
+        /* Responsive */
+        @media (max-height: 720px) {
+            .app-modal {
+                height: 94vh;
+                max-height: 580px;
+            }
+            .preview-showcase {
+                height: 190px;
+                margin-top: -8px;
+                margin-bottom: -6px;
+            }
+            .stats-list {
+                gap: 7px;
+                margin-bottom: 10px;
+            }
+            .veh-card {
+                height: 58px;
+            }
         }
     </style>
 </head>
 <body x-data="garageApp()">
-    
+
+    <!-- Preserved iframe for 3D tags/showroom -->
     <iframe src="showroom_tags/index.html" id="tags-iframe" x-cloak></iframe>
 
-    <div class="app-wrapper" x-show="isOpen" :class="{ 'is-impound': isImpound }" x-cloak>
-        <!-- Vanguard Progress Component -->
-        <div class="vanguard-progress-wrap" x-show="progress.show" x-transition x-cloak>
-            <div class="progress-label" x-text="progress.label"></div>
-            <div class="vanguard-bar-bg">
-                <div class="vanguard-bar-fill" :style="'width: ' + progress.percent + '%'"></div>
-            </div>
-        </div>
-        <div class="sidebar">
-            <div class="sidebar-glow"></div>
-            <div class="sidebar-line"></div>
-
-            <div class="content-container">
-                
-                <header class="header">
-                    <div class="logo-wordmark" x-text="isImpound ? 'DETRAN' : 'MRI'"></div>
-                    <div class="logo-subtitle" x-text="isImpound ? 'PÁTIO DE APREENSÃO' : 'GARAGEM'"></div>
-                </header>
-
-                <div class="search-area">
-                    <div class="search-input-wrap">
-                        <i class="fa-solid fa-search" style="color: var(--t3); font-size: 16px;"></i>
-                        <input type="text" placeholder="BUSCAR SEU VEÍCULO..." x-model="search">
-                    </div>
-                </div>
-
-                <div class="vehicle-list">
-                    <!-- Mensagem de Lista Vazia -->
-                    <template x-if="filteredVehicles().length === 0">
-                        <div class="empty-state">
-                            <i class="fa-solid fa-car-on"></i>
-                            <p x-text="isImpound ? 'Nenhum veículo apreendido ou em busca' : 'Nenhum veículo encontrado nesta unidade'"></p>
-                        </div>
-                    </template>
-
-                    <template x-for="veh in filteredVehicles()" :key="veh.plate">
-                        <div class="veh-card" :class="{ 'active': selected && selected.plate === veh.plate }" @click="selectVehicle(veh)">
-                            <div class="veh-card-icon">
-                                <i class="fa-solid fa-car-side"></i>
-                            </div>
-                            <div class="veh-card-info">
-                                <h3 x-text="veh.name"></h3>
-                                <p x-text="veh.plate"></p>
-                            </div>
-                            <div class="price-badge" x-show="isImpound" x-text="'R$ ' + veh.price.toLocaleString('pt-BR')"></div>
-                            <i x-show="!isImpound" class="fa-solid fa-chevron-right" style="font-size: 14px; color: var(--glass-b); position: absolute; right: 20px;"></i>
-                        </div>
-                    </template>
-                </div>
-
-                <!-- Details Dialogue -->
-                <div class="details-panel" x-show="selected" x-transition:enter="slide-up">
-                    <!-- Vehicle Identity Section -->
-                    <h1 class="veh-name-title" x-text="selected?.name"></h1>
-                    
-                    <div class="plate-section-wrap">
-                        <div class="veh-plate-pill">
-                            <img src="nui://vanguard_garage/web/assets/mercosul.svg">
-                            <span x-text="selected?.plate"></span>
-                        </div>
-                    </div>
-
-                    <div class="preview-box">
-                        <template x-if="imageStatus[selected?.plate] !== 'failed'">
-                            <img :src="getImgUrl(selected?.model, selected?.plate)" 
-                                 @error="onImageError(selected?.plate, selected?.model)" 
-                                 loading="lazy">
-                        </template>
-                        <template x-if="imageStatus[selected?.plate] === 'failed'">
-                            <i class="fa-solid fa-car" style="font-size: 70px; color: var(--glass-b); opacity: 0.2;"></i>
-                        </template>
-                    </div>
-
-                    <div class="stats-grid">
-                        <div class="stat-card" :class="isImpound ? '' : 'stat-card-gold'">
-                            <div class="stat-icon-wrap" :class="isImpound ? '' : 'si-gold'">
-                                <i class="fa-solid fa-gas-pump"></i>
-                            </div>
-                            <div class="stat-info">
-                                <span class="stat-label">Tanque</span>
-                                <span class="stat-value" x-text="Math.round(selected?.fuel || 0) + '%'"></span>
-                            </div>
-                        </div>
-                        <div class="stat-card" :class="isImpound ? '' : 'stat-card-purple'">
-                            <div class="stat-icon-wrap" :class="isImpound ? '' : 'si-purple'">
-                                <i class="fa-solid fa-microchip"></i>
-                            </div>
-                            <div class="stat-info">
-                                <span class="stat-label">Motor</span>
-                                <span class="stat-value" x-text="Math.round((selected?.engine || 0)/10) + '%'"></span>
-                            </div>
-                        </div>
-                        <div class="stat-card" :class="isImpound ? '' : 'stat-card-blue'">
-                            <div class="stat-icon-wrap" :class="isImpound ? '' : 'si-blue'">
-                                <i class="fa-solid fa-car-burst"></i>
-                            </div>
-                            <div class="stat-info">
-                                <span class="stat-label">Lataria</span>
-                                <span class="stat-value" x-text="Math.round((selected?.body || 0)/10) + '%'"></span>
-                            </div>
-                        </div>
-                        <div class="stat-card" :class="isImpound ? '' : (selected?.state === 1 && selected?.state_text !== 'Quebrado' ? 'stat-card-green' : 'stat-card-red')">
-                            <div class="stat-icon-wrap" :class="isImpound ? '' : (selected?.state === 1 && selected?.state_text !== 'Quebrado' ? 'si-green' : 'si-red')">
-                                <i class="fa-solid fa-shield-halved"></i>
-                            </div>
-                            <div class="stat-info">
-                                <span class="stat-label">Status</span>
-                                <span class="stat-value" :style="'color:' + (selected?.state_text === 'Quebrado' ? 'var(--red)' : (selected?.state === 1 ? 'var(--green)' : 'var(--red)'))" x-text="selected?.state_text || (selected?.state === 1 ? 'Na Garagem' : 'Fora da Garagem')"></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <button class="btn-withdraw" :class="{ 'btn-impound': isImpound }" @click="spawn()" :disabled="!canSpawn()">
-                        <template x-if="!isImpound">
-                            <i class="fa-solid fa-key"></i>
-                        </template>
-                        <template x-if="isImpound">
-                            <i class="fa-solid fa-hand-holding-dollar"></i>
-                        </template>
-                        <span x-text="getSpawnButtonText()"></span>
-                    </button>
-
-                    <!-- Botão de Guardar Veículo solicitado pelo usuário -->
-                    <template x-if="!isImpound">
-                        <button class="btn-store" @click="storeVeh()" :disabled="!canStore()">
-                            <i class="fa-solid fa-square-parking"></i>
-                            <span x-text="getStoreButtonText()"></span>
-                        </button>
-                    </template>
-
-                    <div class="hint-text">ESC PARA FECHAR</div>
-                </div>
-            </div>
+    <!-- Vanguard Progress Modal -->
+    <div class="vanguard-progress-wrap" x-show="progress.show" x-transition x-cloak>
+        <div class="progress-label" x-text="progress.label"></div>
+        <div class="vanguard-bar-bg">
+            <div class="vanguard-bar-fill" :style="'width: ' + progress.percent + '%'"></div>
         </div>
     </div>
 
+    <!-- MAIN APP WRAPPER -->
+    <div class="app-wrapper" x-show="isOpen" x-cloak>
+        <div class="app-modal">
+            
+            <!-- ================= LEFT PANEL ================= -->
+            <div class="left-panel">
+                <!-- Header -->
+                <div class="left-header">
+                    <div class="header-icon">
+                        <i class="fa-solid fa-car"></i>
+                    </div>
+                    <div class="header-text">
+                        <h1 class="header-title" x-text="isImpound ? 'DETRAN' : 'GARAGEM'">GARAGEM</h1>
+                        <span class="header-subtitle" x-text="isImpound ? 'PÁTIO DE APREENSÃO' : 'SEUS VEÍCULOS'">SEUS VEÍCULOS</span>
+                    </div>
+                </div>
+
+                <!-- Showcase Preview Stage -->
+                <div class="preview-showcase">
+                    <img src="assets/car_stage.jpg" alt="Showcase Stage" class="stage-img">
+                </div>
+
+                <!-- Vehicle Title & Mercosul Plate -->
+                <div class="preview-info">
+                    <div class="veh-title" x-text="selected?.name || 'VEÍCULO'">VEÍCULO</div>
+                    
+                    <!-- Mercosul Plate -->
+                    <div class="plate-mercosul plate-large">
+                        <div class="plate-top">
+                            <span class="plate-country">BRASIL</span>
+                            <div class="plate-flag">
+                                <svg viewBox="0 0 20 14" style="width:100%;height:100%;">
+                                    <rect width="20" height="14" fill="#009b3a"/>
+                                    <polygon points="10,1 18,7 10,13 2,7" fill="#fedf00"/>
+                                    <circle cx="10" cy="7" r="3.2" fill="#002776"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="plate-bottom">
+                            <span class="plate-br">BR</span>
+                            <span class="plate-text" x-text="selected?.plate || 'ABC1D23'">ABC1D23</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vehicle Stats -->
+                <div class="stats-list">
+                    <!-- MOTOR -->
+                    <div class="stat-row">
+                        <div class="stat-icon">
+                            <img src="assets/engine.png" class="stat-icon-img" alt="Motor">
+                        </div>
+                        <div class="stat-label">MOTOR</div>
+                        <div class="stat-bar-track">
+                            <div class="stat-bar-fill" :style="'width: ' + Math.min(100, Math.max(0, Math.round((selected?.engine || 0)/10))) + '%'"></div>
+                        </div>
+                        <div class="stat-val" x-text="Math.min(100, Math.max(0, Math.round((selected?.engine || 0)/10))) + '%'">99%</div>
+                    </div>
+
+                    <!-- LATARIA -->
+                    <div class="stat-row">
+                        <div class="stat-icon">
+                            <img src="assets/body.png" class="stat-icon-img" alt="Lataria">
+                        </div>
+                        <div class="stat-label">LATARIA</div>
+                        <div class="stat-bar-track">
+                            <div class="stat-bar-fill" :style="'width: ' + Math.min(100, Math.max(0, Math.round((selected?.body || 0)/10))) + '%'"></div>
+                        </div>
+                        <div class="stat-val" x-text="Math.min(100, Math.max(0, Math.round((selected?.body || 0)/10))) + '%'">99%</div>
+                    </div>
+
+                    <!-- GASOLINA -->
+                    <div class="stat-row">
+                        <div class="stat-icon">
+                            <img src="assets/fuel.png" class="stat-icon-img" alt="Gasolina">
+                        </div>
+                        <div class="stat-label">GASOLINA</div>
+                        <div class="stat-bar-track">
+                            <div class="stat-bar-fill" :style="'width: ' + Math.min(100, Math.max(0, Math.round(selected?.fuel || 0))) + '%'"></div>
+                        </div>
+                        <div class="stat-val" x-text="Math.min(100, Math.max(0, Math.round(selected?.fuel || 0))) + '%'">80%</div>
+                    </div>
+
+                    <!-- PORTA-MALAS -->
+                    <div class="stat-row">
+                        <div class="stat-icon">
+                            <i class="fa-solid fa-suitcase"></i>
+                        </div>
+                        <div class="stat-label">PORTA-MALAS</div>
+                        <div class="stat-bar-track">
+                            <div class="stat-bar-fill" :style="'width: ' + (selected?.trunk !== undefined ? selected.trunk : 5) + '%'"></div>
+                        </div>
+                        <div class="stat-val" x-text="(selected?.trunk !== undefined ? selected.trunk : 5) + '%'">5%</div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="actions-group">
+                    <!-- Rastrear Veículo no GPS (Quando estiver Fora da Garagem) -->
+                    <button class="btn-primary" x-show="selected?.state === 0 && !isImpound" @click="trackVeh()">
+                        <i class="fa-solid fa-location-crosshairs"></i>
+                        <span>RASTREAR NO GPS</span>
+                    </button>
+
+                    <!-- Retirar Veículo -->
+                    <button class="btn-primary" x-show="selected?.state !== 0 || isImpound" @click="spawn()" :disabled="!canSpawn()">
+                        <i class="fa-solid fa-car"></i>
+                        <span x-text="getSpawnButtonText()">RETIRAR VEÍCULO</span>
+                    </button>
+
+                    <!-- Guardar Veículo -->
+                    <button class="btn-secondary" x-show="!isImpound" @click="storeVeh()" :disabled="!canStore()">
+                        <i class="fa-regular fa-bookmark"></i>
+                        <span x-text="getStoreButtonText()">GUARDAR VEÍCULO</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ================= RIGHT PANEL ================= -->
+            <div class="right-panel">
+                <!-- Action Bar (Search, Filter, ESC) -->
+                <div class="right-header">
+                    <div class="search-wrap">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" placeholder="Buscar veículo..." x-model="search">
+                    </div>
+                    <button class="btn-filter" @click="toggleSort()" title="Ordenar">
+                        <i class="fa-solid fa-sliders"></i>
+                    </button>
+                    <button class="btn-esc" @click="close()">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <span>ESC</span>
+                    </button>
+                </div>
+
+                <!-- Vehicle List -->
+                <div class="vehicle-list">
+                    <template x-for="(veh, index) in filteredVehicles()" :key="(veh.plate || '') + '_' + (veh.model || '') + '_' + index">
+                        <div class="veh-card" 
+                             :class="{ 'active': selected && (selected === veh || (selected.model === veh.model && selected.plate === veh.plate)) }" 
+                             @click="selectVehicle(veh)">
+                            <!-- Thumbnail -->
+                            <div class="veh-thumb-wrap">
+                                <img src="assets/carro_default.png" alt="Car Thumbnail" class="veh-thumb-img">
+                            </div>
+
+                            <!-- Vehicle Info & Mercosul Plate -->
+                            <div class="veh-card-info">
+                                <div class="veh-card-name" x-text="veh.name || 'Veículo'">Veículo</div>
+                                <div class="plate-mercosul">
+                                    <div class="plate-top">
+                                        <span class="plate-country">BRASIL</span>
+                                        <div class="plate-flag">
+                                            <svg viewBox="0 0 20 14" style="width:100%;height:100%;">
+                                                <rect width="20" height="14" fill="#009b3a"/>
+                                                <polygon points="10,1 18,7 10,13 2,7" fill="#fedf00"/>
+                                                <circle cx="10" cy="7" r="3.2" fill="#002776"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div class="plate-bottom">
+                                        <span class="plate-br">BR</span>
+                                        <span class="plate-text" x-text="veh.plate">ABC1D23</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Impound Price Badge -->
+                            <div class="price-badge" x-show="isImpound" x-text="'R$ ' + (veh.price || 0).toLocaleString('pt-BR')"></div>
+
+                            <!-- Arrow -->
+                            <div class="veh-card-arrow">
+                                <i class="fa-solid fa-chevron-right"></i>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Empty State -->
+                    <template x-if="filteredVehicles().length === 0">
+                        <div class="empty-list">
+                            <i class="fa-solid fa-car"></i>
+                            <p x-text="isImpound ? 'Nenhum veículo apreendido' : 'Nenhum veículo encontrado'"></p>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ================= JAVASCRIPT LOGIC ================= -->
     <script>
         const Nui = {
             async post(action, data = {}) {
-                const resName = GetParentResourceName ? GetParentResourceName() : 'vanguard_garage';
+                const resName = window.GetParentResourceName ? window.GetParentResourceName() : 'vanguard_garage';
                 try {
                     const resp = await fetch(`https://${resName}/${action}`, {
                         method: 'POST',
@@ -534,7 +983,9 @@
                         body: JSON.stringify(data)
                     });
                     return await resp.json();
-                } catch (e) { return { error: true }; }
+                } catch (e) {
+                    return { error: true };
+                }
             }
         };
 
@@ -545,9 +996,9 @@
                 isProcessing: false,
                 vehicles: [],
                 search: '',
+                sortAsc: true,
                 selected: null,
                 garageName: '',
-                imageStatus: {},
                 progress: {
                     show: false,
                     label: '',
@@ -557,15 +1008,18 @@
                 init() {
                     window.addEventListener('message', (event) => {
                         const item = event.data;
+                        if (!item) return;
+
                         if (item.action === 'open') {
                             this.vehicles = item.vehicles || [];
-                            this.garageName = item.garage;
+                            this.garageName = item.garage || 'GARAGEM';
                             this.isImpound = item.isImpound || false;
                             this.isOpen = true;
-                            this.selected = null;
-                            this.imageStatus = {};
+                            this.search = '';
                             this.isProcessing = false;
+                            this.selected = this.vehicles.length > 0 ? this.vehicles[0] : null;
                         }
+
                         if (item.action === 'close') {
                             this.isOpen = false;
                             this.isProcessing = false;
@@ -576,46 +1030,60 @@
                             this.progress.label = item.label;
                             this.progress.percent = item.percent;
                         }
+
                         if (item.action === 'progressHide') {
                             this.progress.show = false;
                         }
                     });
+
                     document.addEventListener('keydown', (e) => {
                         if (e.key === 'Escape' && this.isOpen) {
-                            if (this.selected) {
-                                this.selected = null;
-                            } else {
-                                this.close();
-                            }
+                            this.close();
                         }
                     });
+
+                    // Test mode when viewing in browser outside FiveM
+                    if (!window.GetParentResourceName) {
+                        setTimeout(() => {
+                            window.postMessage({
+                                action: 'open',
+                                garage: 'GARAGEM',
+                                isImpound: false,
+                                vehicles: [
+                                    { name: 'Veículo', plate: 'ABC1D23', model: 'adder', fuel: 80, engine: 990, body: 990, state: 1, trunk: 5 },
+                                    { name: 'Veículo', plate: 'DEF4G56', model: 't20', fuel: 90, engine: 1000, body: 950, state: 1, trunk: 12 },
+                                    { name: 'Veículo', plate: 'HIJ7K89', model: 'zentorno', fuel: 65, engine: 900, body: 800, state: 1, trunk: 25 },
+                                    { name: 'Veículo', plate: 'LMNOP12', model: 'elegy', fuel: 90, engine: 1000, body: 1000, state: 1, trunk: 0 },
+                                    { name: 'Veículo', plate: 'QRS3T45', model: 'sultan', fuel: 45, engine: 750, body: 850, state: 1, trunk: 8 },
+                                    { name: 'Veículo', plate: 'UVW6X78', model: 'kuruma', fuel: 100, engine: 1000, body: 1000, state: 1, trunk: 50 },
+                                ]
+                            }, '*');
+                        }, 100);
+                    }
+                },
+
+                selectVehicle(veh) {
+                    this.selected = veh;
+                },
+
+                toggleSort() {
+                    this.sortAsc = !this.sortAsc;
                 },
 
                 filteredVehicles() {
-                    if (!this.search) return this.vehicles;
-                    const s = this.search.toLowerCase();
-                    return this.vehicles.filter(v => v.name.toLowerCase().includes(s) || v.plate.toLowerCase().includes(s));
-                },
-
-                selectVehicle(v) { this.selected = v; },
-
-                getImgUrl(model, plate) {
-                    if (!model) return '';
-                    const status = this.imageStatus[plate];
-                    const lower = model.toLowerCase();
-                    if (status === 'nui-PNG') return `vehicles/${lower}.PNG`;
-                    if (status === 'primary') return `https://cfx-nui-ox_inventory/web/images/${lower}.png`;
-                    if (status === 'fallback') return `https://docs.fivem.net/vehicles/${lower}.webp`;
-                    return `vehicles/${lower}.png`;
-                },
-
-                onImageError(plate, model) {
-                    const status = this.imageStatus[plate];
-                    if (!status) this.imageStatus[plate] = 'nui-PNG';
-                    else if (status === 'nui-PNG') this.imageStatus[plate] = 'primary';
-                    else if (status === 'primary') this.imageStatus[plate] = 'fallback';
-                    else if (status === 'fallback') this.imageStatus[plate] = 'failed';
-                    this.imageStatus = { ...this.imageStatus };
+                    let list = this.vehicles;
+                    if (this.search) {
+                        const s = this.search.toLowerCase();
+                        list = list.filter(v => 
+                            (v.name && v.name.toLowerCase().includes(s)) || 
+                            (v.plate && v.plate.toLowerCase().includes(s))
+                        );
+                    }
+                    return list.slice().sort((a, b) => {
+                        const nameA = (a.name || '').toLowerCase();
+                        const nameB = (b.name || '').toLowerCase();
+                        return this.sortAsc ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
+                    });
                 },
 
                 canSpawn() {
@@ -641,7 +1109,7 @@
                     if (!this.selected || this.isImpound) return false;
                     if (this.selected.isWork) return true;
                     if (this.selected.state === 1) return false;
-                    return !!(this.selected.isNearby || this.selected.canStore);
+                    return true;
                 },
 
                 getStoreButtonText() {
@@ -649,8 +1117,7 @@
                     if (!this.selected) return 'GUARDAR VEÍCULO';
                     if (this.selected.isWork) return 'GUARDAR VIATURA / SERVIÇO';
                     if (this.selected.state === 1) return 'JÁ ESTÁ NA GARAGEM';
-                    if (this.selected.isNearby || this.selected.canStore) return 'GUARDAR VEÍCULO (PRÓXIMO)';
-                    return 'VEÍCULO LONGE DA GARAGEM';
+                    return 'GUARDAR VEÍCULO';
                 },
 
                 spawn() {
@@ -663,6 +1130,16 @@
                         model: this.selected.model,
                         name: this.selected.name,
                         isWork: this.selected.isWork
+                    });
+                    this.close();
+                },
+
+                trackVeh() {
+                    if (!this.selected || this.isProcessing) return;
+                    this.isProcessing = true;
+                    Nui.post('trackVehicle', {
+                        plate: this.selected.plate,
+                        garage: this.garageName
                     });
                     this.close();
                 },
@@ -682,7 +1159,7 @@
                     this.isProcessing = false;
                     Nui.post('closeUI');
                 }
-            }
+            };
         }
     </script>
 </body>

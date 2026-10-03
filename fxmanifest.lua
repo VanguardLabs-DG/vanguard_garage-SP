@@ -47,12 +47,15 @@ files {
     'dui/app.js',
     'web/index.html',
     'web/assets/mercosul.svg',
+    'web/assets/carro_default.png',
+    'web/assets/engine.png',
+    'web/assets/body.png',
+    'web/assets/fuel.png',
+    'web/assets/*',
     'web/showroom_tags/index.html',
     'admin/index.html',
     'admin/style.css',
     'admin/app.js',
-    'admin/garages.html',
-    'admin/assets/*',
 }
 
 ox_lib "locale"

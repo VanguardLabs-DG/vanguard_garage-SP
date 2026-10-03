@@ -30,7 +30,7 @@ local function unlockPlate(plate)
 end
 
 -- Registro de veículos ativos por placa (Placa -> Entidade)
-local SpawnedVehicleEntities = {}
+SpawnedVehicleEntities = SpawnedVehicleEntities or {}
 
 local function getPlayerGarageLevel(src)
     local player = exports.qbx_core:GetPlayer(src)
@@ -144,12 +144,12 @@ local function HasGaragePermission(source, player, perm)
         return true
     end
 
-    if exports.qbx_core:HasPermission(source, perm) or exports.qbx_core:HasGroup(source, perm) then
+    local permLower = string.lower(tostring(perm))
+    if exports.qbx_core:HasPermission(source, perm) or exports.qbx_core:HasGroup(source, perm) or exports.qbx_core:HasGroup(source, permLower) then
         return true
     end
 
-    local job = player.PlayerData and player.PlayerData.job
-    local permLower = string.lower(tostring(perm))
+    local job = (player.PlayerData and player.PlayerData.job) or player.job
     if job then
         local jName = string.lower(tostring(job.name or ""))
         local jType = string.lower(tostring(job.type or ""))
@@ -158,26 +158,26 @@ local function HasGaragePermission(source, player, perm)
         end
 
         -- Mapeamentos de permissão de polícia / hospital
-        if permLower == "paramedico" or permLower == "paramedic" or permLower == "hp" then
-            if jName == "paramedic" or jName == "paramedico" or jName == "ambulance" then
+        if permLower == "paramedico" or permLower == "paramedic" or permLower == "hp" or permLower == "hpheli" or permLower == "paramedicoheli" then
+            if jName == "paramedic" or jName == "paramedico" or jName == "ambulance" or exports.qbx_core:HasGroup(source, "ambulance") or exports.qbx_core:HasGroup(source, "paramedic") then
                 return true
             end
-        elseif permLower == "pm" or permLower == "pc" or permLower == "pf" or permLower == "prf" or permLower == "gcm" or permLower == "police" then
-            if jName == "police" or jName == permLower or jType == "leo" then
+        elseif permLower == "pm" or permLower == "pc" or permLower == "pf" or permLower == "prf" or permLower == "gcm" or permLower == "police" or permLower == "helipm" or permLower == "helipf" or permLower == "heliprf" or permLower == "bprv" or permLower == "bprv1" or permLower == "qcg" then
+            if jName == "police" or jName == "pmesp" or jName == "policia" or jName == permLower or jType == "leo" or exports.qbx_core:HasGroup(source, "police") or exports.qbx_core:HasGroup(source, "pm") or exports.qbx_core:HasGroup(source, "pmesp") then
                 return true
             end
-        elseif permLower == "bombeiro" or permLower == "bm" then
-            if jName == "fire" or jName == "bombeiro" then
+        elseif permLower == "bombeiro" or permLower == "bm" or permLower == "heli bm" or permLower == "boats bm" then
+            if jName == "fire" or jName == "bombeiro" or exports.qbx_core:HasGroup(source, "fire") or exports.qbx_core:HasGroup(source, "bombeiro") then
                 return true
             end
         elseif permLower == "mechanic" or permLower == "mecanico" or permLower == "mec" or permLower == "mec1" or permLower == "mec2" or permLower == "mec3" then
-            if jName == "mechanic" or jName == "mecanico" or jType == "mechanic" then
+            if jName == "mechanic" or jName == "mecanico" or jType == "mechanic" or exports.qbx_core:HasGroup(source, "mechanic") then
                 return true
             end
         end
     end
 
-    local gang = player.PlayerData and player.PlayerData.gang
+    local gang = (player.PlayerData and player.PlayerData.gang) or player.gang
     if gang and string.lower(tostring(gang.name or "")) == permLower then
         return true
     end
@@ -203,19 +203,19 @@ lib.callback.register('vanguard_garage:cb_server:getVehicleList', function(src, 
     if not workKey and Config.Works then
         if Config.Works[gName] then
             workKey = gName
-        elseif perm and Config.Works[perm] then
-            workKey = perm
-        elseif gz and gz.job and Config.Works[gz.job] then
+        elseif gz and gz.job and Config.Works[gz.job] and gName ~= "Garage" then
             workKey = gz.job
-        else
+        elseif perm and perm ~= "" and Config.Works[perm] and gName ~= "Garage" then
+            workKey = perm
+        elseif gName ~= "Garage" then
             local pLower = string.lower(tostring(perm or gName or ""))
-            if (pLower == "paramedic" or pLower == "paramedico" or pLower == "hp") and Config.Works["Paramedico"] then
+            if (pLower == "paramedic" or pLower == "paramedico" or pLower == "hp" or pLower == "hpheli" or pLower == "paramedicoheli") and Config.Works["Paramedico"] then
                 workKey = "Paramedico"
-            elseif (pLower == "bombeiro" or pLower == "bm") and Config.Works["BM"] then
+            elseif (pLower == "bombeiro" or pLower == "bm" or pLower == "heli bm" or pLower == "boats bm") and Config.Works["BM"] then
                 workKey = "BM"
-            elseif (pLower == "mechanic" or pLower == "mecanico" or pLower == "mec") and Config.Works["Mechanic"] then
+            elseif (pLower == "mechanic" or pLower == "mecanico" or pLower == "mec" or pLower == "mec1" or pLower == "mec2" or pLower == "mec3") and Config.Works["Mechanic"] then
                 workKey = "Mechanic"
-            elseif (pLower:find("pm") or pLower == "qcg") and Config.Works["PM"] then
+            elseif (pLower:find("pm") or pLower == "qcg" or pLower == "bprv" or pLower == "bprv1") and Config.Works["PM"] then
                 workKey = "PM"
             elseif pLower:find("pc") and Config.Works["PC"] then
                 workKey = "PC"
@@ -230,17 +230,36 @@ lib.callback.register('vanguard_garage:cb_server:getVehicleList', function(src, 
     end
 
     if workKey and Config.Works and Config.Works[workKey] then
+        local prefix = "SRV"
+        local wkUpper = tostring(workKey):upper()
+        if wkUpper == "PM" or wkUpper:find("PM") or wkUpper == "ROCAM" or wkUpper == "FT" or wkUpper == "COE" or wkUpper == "QCG" then
+            prefix = "PM"
+        elseif wkUpper == "PC" or wkUpper:find("PC") then
+            prefix = "PC"
+        elseif wkUpper == "PF" or wkUpper:find("PF") then
+            prefix = "PF"
+        elseif wkUpper == "PRF" or wkUpper:find("PRF") or wkUpper:find("BPRV") then
+            prefix = "PRF"
+        elseif wkUpper:find("PARAMEDICO") or wkUpper == "HP" or wkUpper:find("HELI") then
+            prefix = "SAMU"
+        elseif wkUpper:find("BM") or wkUpper:find("BOMBEIRO") then
+            prefix = "BM"
+        elseif wkUpper:find("MEC") then
+            prefix = "MEC"
+        elseif wkUpper:find("GCM") then
+            prefix = "GCM"
+        end
+
         local list = {}
-        for _, model in ipairs(Config.Works[workKey]) do
-            local vehName = fw.gvn(model)
-            if not vehName or vehName == "" then
-                vehName = string.upper(model)
-            end
+        for idx, rawItem in ipairs(Config.Works[workKey]) do
+            local model = type(rawItem) == "table" and rawItem.model or rawItem
+            local ok, name = pcall(fw.gvn, model)
+            local vehName = (type(rawItem) == "table" and rawItem.name) or ((ok and name and name ~= "") and name or string.upper(tostring(model)))
 
             list[#list + 1] = {
                 name = vehName,
                 model = model,
-                plate = "SERVIÇO",
+                plate = string.format("%s-%03d", prefix, idx),
                 fuel = 100,
                 engine = 1000,
                 body = 1000,
@@ -357,7 +376,7 @@ RegisterNetEvent("vanguard_garage:server:updateState", function ( data )
 end)
 
 -- Mapa de rastreamento de veículos ativos no servidor (Entity -> Plate)
-local ActiveVehiclePlates = {}
+ActiveVehiclePlates = ActiveVehiclePlates or {}
 
 -- Thread de sincronização contínua para mapear placas de todos os veículos existentes
 CreateThread(function()
@@ -368,13 +387,14 @@ CreateThread(function()
             local entity = allVehicles[i]
             if DoesEntityExist(entity) and not ActiveVehiclePlates[entity] then
                 pcall(function()
+                    local statePlate = Entity(entity).state.trackedPlate or Entity(entity).state.plate
                     local rawPlate = GetVehicleNumberPlateText(entity)
-                    if rawPlate and rawPlate ~= "" then
-                        local cp = utils.string.trim(rawPlate)
+                    local cp = statePlate and utils.string.trim(tostring(statePlate)) or (rawPlate and utils.string.trim(rawPlate))
+                    if cp and cp ~= "" then
+                        local np = cp:gsub("%s+", ""):upper()
                         ActiveVehiclePlates[entity] = cp
-                        if not SpawnedVehicleEntities[cp] then
-                            SpawnedVehicleEntities[cp] = entity
-                        end
+                        SpawnedVehicleEntities[cp] = entity
+                        SpawnedVehicleEntities[np] = entity
                     end
                 end)
             end
@@ -382,7 +402,7 @@ CreateThread(function()
     end
 end)
 
--- Listener para sincronizar veículos deletados no servidor
+-- Listener para sincronizar veículos deletados no servidor (via /dv, script de limpeza, etc.)
 AddEventHandler('entityRemoved', function(entity)
     if GetEntityType(entity) ~= 2 then return end -- 2 = veículo
     
@@ -398,13 +418,60 @@ AddEventHandler('entityRemoved', function(entity)
         end)
     end
     
+    local eng = (DoesEntityExist(entity) and GetVehicleEngineHealth(entity)) or nil
+    local bdy = (DoesEntityExist(entity) and GetVehicleBodyHealth(entity)) or nil
+    local stFuel = Entity(entity).state and Entity(entity).state.fuel
+
     ActiveVehiclePlates[entity] = nil
     if plate and plate ~= "" then
+        local np = plate:gsub("%s+", ""):upper()
         if SpawnedVehicleEntities[plate] == entity then
             SpawnedVehicleEntities[plate] = nil
         end
+        if SpawnedVehicleEntities[np] == entity then
+            SpawnedVehicleEntities[np] = nil
+        end
         vehicleCache[plate] = nil
+        vehicleCache[np] = nil
         vehicleCache[plate .. "_owner"] = nil
+        vehicleCache[np .. "_owner"] = nil
+        unlockPlate(plate)
+        unlockPlate(np)
+
+        -- Se for veículo de trabalho/serviço, não precisa atualizar player_vehicles
+        local isWork = false
+        if np:sub(1,3) == "WRK" or np:sub(1,4) == "WORK" or np == "SERVIÇO" or np:sub(1,3) == "SRV" or np:sub(1,2) == "PM" or np:sub(1,2) == "PC" or np:sub(1,3) == "PRF" or np:sub(1,2) == "PF" or np:sub(1,2) == "BM" then
+            isWork = true
+        end
+
+        if not isWork then
+            CreateThread(function()
+                -- Atualiza no banco para state = 1 (disponível na garagem) caso estivesse fora (state = 0)
+                local row = MySQL.single.await([[
+                    SELECT id, plate, state, fuel, engine, body, garage FROM player_vehicles 
+                    WHERE REPLACE(plate, ' ', '') = ? LIMIT 1
+                ]], { np })
+
+                if row and row.state == 0 then
+                    local engineVal = (eng and eng > 0) and eng or (row.engine or 1000)
+                    local bodyVal = (bdy and bdy > 0) and bdy or (row.body or 1000)
+                    local fuelVal = stFuel or row.fuel or 100
+                    local targetGarage = (row.garage and row.garage ~= "") and row.garage or "100002"
+
+                    MySQL.update.await([[
+                        UPDATE player_vehicles 
+                        SET state = 1, engine = ?, body = ?, fuel = ?, garage = ? 
+                        WHERE id = ?
+                    ]], { engineVal, bodyVal, fuelVal, targetGarage, row.id })
+
+                    if row.plate then
+                        vehicleCache[row.plate] = nil
+                        vehicleCache[row.plate .. "_owner"] = nil
+                        unlockPlate(row.plate)
+                    end
+                end
+            end)
+        end
     end
 end)
 
@@ -431,7 +498,8 @@ RegisterNetEvent("vanguard_garage:server:saveGarageZone", function(fileData)
         return
     end
     if type(fileData) ~= "table" or type(fileData) == "nil" then return end
-    return storage.SaveGarage(fileData)
+    storage.SaveGarage(fileData)
+    refreshGaragesFromDB(-1)
 end)
 
 RegisterNetEvent("vanguard_garage:server:saveCustomVehicleName", function (fileData)
@@ -447,6 +515,77 @@ local function cleanupCooldowns(playerId)
     SetTimeout(3000, function()
         vehicleSpawnCooldown[playerId] = nil
     end)
+end
+
+local function givePlayerVehicleKeys(src, plate)
+    if not src or not plate or plate == "" then return false end
+    local cleanPlate = (tostring(plate):gsub("%W", "")):upper()
+
+    local success = false
+    if GetResourceState('mri_Qcarkeys') == 'started' then
+        local ok = pcall(function()
+            if exports.mri_Qcarkeys.GiveKeyItem then
+                exports.mri_Qcarkeys:GiveKeyItem(src, cleanPlate)
+                success = true
+            end
+            if exports.mri_Qcarkeys.GiveTempKeys then
+                exports.mri_Qcarkeys:GiveTempKeys(src, cleanPlate)
+            end
+        end)
+        if not ok then
+            print(("[vanguard_garage] AVISO: Erro ao chamar exports.mri_Qcarkeys:GiveKeyItem para o jogador %s (placa %s)"):format(src, cleanPlate))
+        end
+    end
+
+    if not success and GetResourceState('ox_inventory') == 'started' then
+        pcall(function()
+            exports.ox_inventory:AddItem(src, 'vehiclekey', 1, {
+                label = 'CHAVE-' .. cleanPlate,
+                plate = cleanPlate
+            })
+            success = true
+        end)
+    end
+
+    return success
+end
+
+local function removePlayerVehicleKeys(src, plate)
+    if not src or not plate or plate == "" then return false end
+    local cleanPlate = (tostring(plate):gsub("%W", "")):upper()
+
+    -- 1. Remove via mri_Qcarkeys oficial (remove o item físico e a autorização temporária)
+    if GetResourceState('mri_Qcarkeys') == 'started' then
+        pcall(function()
+            if exports.mri_Qcarkeys.RemoveKeyItem then
+                exports.mri_Qcarkeys:RemoveKeyItem(src, cleanPlate)
+            end
+            if exports.mri_Qcarkeys.RemoveTempKeys then
+                exports.mri_Qcarkeys:RemoveTempKeys(src, cleanPlate)
+            end
+        end)
+    end
+
+    -- 2. Fallback direto no ox_inventory garantindo limpeza completa de qualquer chave física com essa placa
+    if GetResourceState('ox_inventory') == 'started' then
+        pcall(function()
+            local items = exports.ox_inventory:GetSlotsWithItem(src, 'vehiclekey')
+            if items and type(items) == 'table' then
+                for _, item in pairs(items) do
+                    local meta = item.metadata or item.info
+                    if meta then
+                        local itemPlate = meta.plate and (tostring(meta.plate):gsub("%W", "")):upper()
+                        local itemLabel = meta.label and (tostring(meta.label):gsub("%W", "")):upper()
+                        if itemPlate == cleanPlate or (itemLabel and itemLabel:find(cleanPlate, 1, true)) then
+                            exports.ox_inventory:RemoveItem(src, 'vehiclekey', 1, false, item.slot)
+                        end
+                    end
+                end
+            end
+        end)
+    end
+
+    return true
 end
 
 -- Callback Autoritativo para Guardar Veículo
@@ -465,15 +604,15 @@ lib.callback.register('vanguard_garage:server:storeVehicle', function(source, ne
     local vCoords = GetEntityCoords(entity)
 
     -- Validação de distância entre jogador e veículo
-    if #(pCoords - vCoords) > 40.0 then
+    if #(pCoords - vCoords) > 60.0 then
         return false, "Você está muito longe deste veículo."
     end
 
     -- Validação de distância da garagem
     local gz = garageId and GarageZone[tostring(garageId)]
     if gz then
-        local gCoords = gz.marker or (gz.marker_x and vec3(gz.marker_x, gz.marker_y, gz.marker_z))
-        if gCoords and #(pCoords - gCoords) > 70.0 then
+        local gCoords = gz.marker or (gz.marker_x and vec3(gz.marker_x, gz.marker_y, gz.marker_z)) or gz.coords
+        if gCoords and #(pCoords - gCoords) > 120.0 then
             return false, "Você está muito longe do ponto da garagem."
         end
     end
@@ -481,14 +620,14 @@ lib.callback.register('vanguard_garage:server:storeVehicle', function(source, ne
     -- Validação de velocidade do veículo (Server-safe)
     if type(GetEntityVelocity) == "function" then
         local vel = GetEntityVelocity(entity)
-        if vel and #(vel) > 2.0 then
+        if vel and #(vel) > 5.0 then
             return false, "O veículo precisa estar parado para ser guardado."
         end
     end
 
-    -- Validação de condutor: se outro jogador estiver no volante
+    -- Validação de condutor: se outro jogador real estiver no volante
     local driver = GetPedInVehicleSeat(entity, -1)
-    if driver ~= 0 and DoesEntityExist(driver) and driver ~= ped then
+    if driver ~= 0 and DoesEntityExist(driver) and driver ~= ped and IsPedAPlayer(driver) then
         return false, "Há outro jogador conduzindo o veículo."
     end
 
@@ -504,27 +643,35 @@ lib.callback.register('vanguard_garage:server:storeVehicle', function(source, ne
     end
 
     local isWork = Entity(entity).state.isWorkVehicle or (gz and gz.isWork)
-    local plate = utils.getPlate(entity)
+    local entityPlate = utils.getPlate(entity)
+    local plate = entityPlate or ActiveVehiclePlates[entity] or (DoesEntityExist(entity) and Entity(entity).state.trackedPlate)
     local cleanPlate = plate and utils.string.trim(plate)
 
     if not isWork and cleanPlate then
-        local prefix = cleanPlate:sub(1, 3)
-        if cleanPlate == "SERVIÇO" or prefix == "SRV" or prefix:sub(1,2) == "PM" or prefix:sub(1,2) == "PC" or prefix == "PRF" or prefix:sub(1,2) == "PF" or prefix:sub(1,2) == "BM" then
+        local prefix = cleanPlate:sub(1, 4):upper()
+        if cleanPlate == "SERVIÇO" or prefix:sub(1,3) == "SRV" or prefix:sub(1,2) == "PM" or prefix:sub(1,2) == "PC" or prefix:sub(1,3) == "PRF" or prefix:sub(1,2) == "PF" or prefix:sub(1,2) == "BM" or prefix == "SAMU" or prefix:sub(1,3) == "MEC" or prefix:sub(1,3) == "GCM" or prefix == "ROTE" or prefix:sub(1,2) == "CB" then
             isWork = true
         end
     end
 
     -- 1. Veículo de Trabalho / Serviço
     if isWork then
-        if GetResourceState('mri_Qcarkeys') == 'started' and cleanPlate then
-            pcall(function()
-                exports.mri_Qcarkeys:RemoveKeyItem(playerId, cleanPlate)
-                if exports.mri_Qcarkeys.RemoveTempKeys then
-                    exports.mri_Qcarkeys:RemoveTempKeys(playerId, cleanPlate)
-                end
-            end)
-        end
         if cleanPlate then
+            removePlayerVehicleKeys(playerId, cleanPlate)
+            -- Limpeza em eventuais parceiros/oficiais próximos da viatura
+            local nearbyPeds = GetAllPeds()
+            local entCoords = GetEntityCoords(entity)
+            for _, p in ipairs(nearbyPeds) do
+                if IsPedAPlayer(p) then
+                    local dist = #(GetEntityCoords(p) - entCoords)
+                    if dist <= 15.0 then
+                        local pSrc = NetworkGetEntityOwner(p)
+                        if pSrc and pSrc ~= playerId and pSrc > 0 then
+                            removePlayerVehicleKeys(pSrc, cleanPlate)
+                        end
+                    end
+                end
+            end
             SpawnedVehicleEntities[cleanPlate] = nil
         end
         ActiveVehiclePlates[entity] = nil
@@ -578,10 +725,11 @@ lib.callback.register('vanguard_garage:server:storeVehicle', function(source, ne
         modsToSave = "{}"
     end
 
+    local np = cleanPlate:gsub("%s+", ""):upper()
     MySQL.update([[
         UPDATE player_vehicles
         SET mods = ?, fuel = ?, deformation = ?, engine = ?, body = ?
-        WHERE plate = ? OR fakeplate = ? OR TRIM(plate) = ?
+        WHERE plate = ? OR fakeplate = ? OR TRIM(plate) = ? OR REPLACE(plate, ' ', '') = ?
     ]], {
         modsToSave,
         fuel,
@@ -590,16 +738,12 @@ lib.callback.register('vanguard_garage:server:storeVehicle', function(source, ne
         body,
         cleanPlate,
         cleanPlate,
-        cleanPlate
+        cleanPlate,
+        np
     })
 
-    if GetResourceState('mri_Qcarkeys') == 'started' and (Config.GiveKeys.onspawn or Config.GiveKeys.enable) then
-        pcall(function()
-            exports.mri_Qcarkeys:RemoveKeyItem(playerId, cleanPlate)
-            if exports.mri_Qcarkeys.RemoveTempKeys then
-                exports.mri_Qcarkeys:RemoveTempKeys(playerId, cleanPlate)
-            end
-        end)
+    if cleanPlate and (Config.GiveKeys.onspawn or Config.GiveKeys.enable) then
+        removePlayerVehicleKeys(playerId, cleanPlate)
     end
 
     SpawnedVehicleEntities[cleanPlate] = nil
@@ -620,7 +764,22 @@ lib.callback.register('vanguard_garage:server:spawnVehicle', function(source, mo
     local plate = (extra and extra.plate) or (props and props.plate)
     local cleanPlate = plate and utils.string.trim(plate)
     local garage = extra and extra.garage
-    local isWork = (extra and extra.isWork) or (cleanPlate and (cleanPlate == "SERVIÇO" or cleanPlate:sub(1,3) == "SRV" or cleanPlate:sub(1,2) == "PM" or cleanPlate:sub(1,2) == "PC" or cleanPlate:sub(1,3) == "PRF" or cleanPlate:sub(1,2) == "PF" or cleanPlate:sub(1,2) == "BM"))
+    local isWork = (extra and extra.isWork) or (cleanPlate and (cleanPlate == "SERVIÇO" or cleanPlate:sub(1,3) == "SRV" or cleanPlate:sub(1,2) == "PM" or cleanPlate:sub(1,2) == "PC" or cleanPlate:sub(1,3) == "PRF" or cleanPlate:sub(1,2) == "PF" or cleanPlate:sub(1,2) == "BM" or cleanPlate:sub(1,4) == "SAMU" or cleanPlate:sub(1,3) == "MEC" or cleanPlate:sub(1,3) == "GCM" or cleanPlate:sub(1,4) == "ROTE" or cleanPlate:sub(1,2) == "CB"))
+
+    -- Se for viatura de serviço e a placa for genérica, contiver hífen (preview) ou vazia, gera uma placa única
+    if isWork and (not cleanPlate or cleanPlate == "" or cleanPlate == "SERVIÇO" or cleanPlate:find("-")) then
+        local pPrefix = "SRV"
+        if cleanPlate and cleanPlate:sub(1, 2) == "PM" then pPrefix = "PM"
+        elseif cleanPlate and cleanPlate:sub(1, 2) == "PC" then pPrefix = "PC"
+        elseif cleanPlate and cleanPlate:sub(1, 2) == "PF" then pPrefix = "PF"
+        elseif cleanPlate and cleanPlate:sub(1, 3) == "PRF" then pPrefix = "PRF"
+        elseif cleanPlate and cleanPlate:sub(1, 4) == "SAMU" then pPrefix = "SAMU"
+        elseif cleanPlate and (cleanPlate:sub(1, 2) == "BM" or cleanPlate:sub(1, 2) == "CB") then pPrefix = "BM"
+        elseif cleanPlate and cleanPlate:sub(1, 3) == "GCM" then pPrefix = "GCM"
+        elseif cleanPlate and cleanPlate:sub(1, 4) == "ROTE" then pPrefix = "ROTE"
+        end
+        cleanPlate = ("%s%04d"):format(pPrefix, math.random(1000, 9999)):sub(1, 8)
+    end
 
     -- Validação de Cooldown por jogador
     if vehicleSpawnCooldown[playerId] then
@@ -719,13 +878,20 @@ lib.callback.register('vanguard_garage:server:spawnVehicle', function(source, mo
     vehicleSpawnCooldown[playerId] = true
     cleanupCooldowns(playerId)
 
-    -- Instancia a entidade via QBX
-    local netid, veh = qbx.spawnVehicle({
-        model = model,
-        spawnSource = coords,
-        warp = false,
-        props = props
-    })
+    -- Instancia a entidade via CreateVehicle nativo do servidor (idêntico ao script garages)
+    local spawnX = coords.x or coords[1]
+    local spawnY = coords.y or coords[2]
+    local spawnZ = coords.z or coords[3]
+    local spawnH = coords.w or coords.h or coords[4] or 0.0
+
+    local modelHash = type(model) == 'number' and model or joaat(model)
+    local veh = CreateVehicle(modelHash, spawnX, spawnY, spawnZ, spawnH, true, true)
+
+    local timeout = 0
+    while not DoesEntityExist(veh) and timeout < 100 do
+        timeout = timeout + 1
+        Wait(20)
+    end
 
     -- Rollback caso a criação falhe
     if not veh or not DoesEntityExist(veh) then
@@ -739,13 +905,50 @@ lib.callback.register('vanguard_garage:server:spawnVehicle', function(source, mo
         return false, false
     end
 
+    if cleanPlate and cleanPlate ~= "" then
+        SetVehicleNumberPlateText(veh, cleanPlate)
+    end
+
+    -- Garante que mods salvos sejam carregados caso props esteja vazio
+    if (not props or not next(props)) and cleanPlate then
+        local rawMods = vehData and vehData.mods
+        if not rawMods then
+            local dbRow = MySQL.single.await("SELECT mods FROM player_vehicles WHERE REPLACE(plate, ' ', '') = ? LIMIT 1", { cleanPlate:gsub("%s+", "") })
+            if dbRow and dbRow.mods then
+                rawMods = dbRow.mods
+            end
+        end
+        if rawMods then
+            if type(rawMods) == "string" and rawMods ~= "" and rawMods ~= "{}" then
+                local ok, p = pcall(json.decode, rawMods)
+                if ok and type(p) == "table" then
+                    props = p
+                end
+            elseif type(rawMods) == "table" then
+                props = rawMods
+            end
+        end
+    end
+
+    -- Seta propriedades via ox_lib no servidor (state bag) antes de replicar aos clientes (idêntico a garages)
+    if props and type(props) == "table" and next(props) then
+        pcall(function() lib.setVehicleProperties(veh, props) end)
+    end
+
+    local fuelLevel = tonumber(vehData and vehData.fuel) or (extra and tonumber(extra.fuel)) or 100
+    Entity(veh).state:set('fuel', fuelLevel, true)
+
+    local netid = NetworkGetNetworkIdFromEntity(veh)
+
     if Config.SpawnLocked then
         SetVehicleDoorsLocked(veh, 2)
     end
 
     if cleanPlate and cleanPlate ~= "" then
+        local np = cleanPlate:gsub("%s+", ""):upper()
         ActiveVehiclePlates[veh] = cleanPlate
         SpawnedVehicleEntities[cleanPlate] = veh
+        SpawnedVehicleEntities[np] = veh
         Entity(veh).state:set('trackedPlate', cleanPlate, true)
     end
 
@@ -755,7 +958,12 @@ lib.callback.register('vanguard_garage:server:spawnVehicle', function(source, mo
         unlockPlate(cleanPlate)
     end
 
-    return netid, veh
+    -- Entrega autoritativa da chave física no inventário e registro de chave temporária
+    if cleanPlate and cleanPlate ~= "" and (isWork or Config.GiveKeys.onspawn) then
+        givePlayerVehicleKeys(playerId, cleanPlate)
+    end
+
+    return netid, veh, cleanPlate
 end)
 
 --- exports
@@ -763,65 +971,84 @@ exports("Garage", function ()
     return GarageZone
 end)
 
+local CustomGarageIds = {}
+
 local function refreshGaragesFromDB(target)
-    local rows = MySQL.query.await("SELECT * FROM custom_garages ORDER BY id ASC")
-    if rows and #rows > 0 then
-        for _, g in ipairs(rows) do
-            local gid = tostring(g.garage_id or g.id)
-            local markerCoord = vec3(g.marker_x, g.marker_y, g.marker_z)
-            local spawns = {}
-            if g.spawns and g.spawns ~= "" and g.spawns ~= "null" then
-                local ok, decoded = pcall(json.decode, g.spawns)
-                if ok and type(decoded) == "table" and #decoded > 0 then
-                    for _, sp in ipairs(decoded) do
-                        if sp and sp.x and sp.y and sp.z then
-                            spawns[#spawns + 1] = vec4(sp.x, sp.y, sp.z, sp.heading or sp.h or 0.0)
-                        end
+    local ok, rows = pcall(function()
+        return MySQL.query.await("SELECT * FROM custom_garages ORDER BY id ASC")
+    end)
+    if not ok or not rows then
+        print("^1[vanguard_garage] Falha ao consultar custom_garages: " .. tostring(rows))
+        return false, tostring(rows)
+    end
+
+    local newCustomIds = {}
+    for _, g in ipairs(rows) do
+        local gid = tostring(g.garage_id or g.id)
+        newCustomIds[gid] = true
+
+        local markerCoord = vec3(g.marker_x, g.marker_y, g.marker_z)
+        local spawns = {}
+        if g.spawns and g.spawns ~= "" and g.spawns ~= "null" then
+            local okDec, decoded = pcall(json.decode, g.spawns)
+            if okDec and type(decoded) == "table" and #decoded > 0 then
+                for _, sp in ipairs(decoded) do
+                    if sp and sp.x and sp.y and sp.z then
+                        spawns[#spawns + 1] = vec4(sp.x, sp.y, sp.z, sp.heading or sp.h or 0.0)
                     end
                 end
             end
-            if #spawns == 0 then
-                spawns = { vec4(g.spawn_x, g.spawn_y, g.spawn_z, g.spawn_h) }
-            end
-
-            local isWork = (Config.Works and Config.Works[g.name] ~= nil) or false
-            local perm = g.permission or ""
-            if perm == "nil" or perm == "false" then perm = "" end
-
-            local isPublic = (perm == "") and not isWork
-            local blipConf = nil
-            if isPublic then
-                local bLabel = "Garagem Pública"
-                local sprite = 357
-                if g.name == "Concessionária" then sprite = 225
-                elseif g.name == "Aeronaves" then sprite = 359
-                elseif g.name and g.name ~= "Garage" and g.name ~= "" then bLabel = "Garagem " .. g.name end
-                blipConf = { type = sprite, color = 3, label = bLabel }
-            end
-
-            GarageZone[gid] = {
-                garage_id = gid,
-                name = g.name or "Garage",
-                label = g.name or "Garage",
-                marker = markerCoord,
-                marker_x = g.marker_x,
-                marker_y = g.marker_y,
-                marker_z = g.marker_z,
-                spawnPoint = spawns,
-                spawnpoint = spawns,
-                type = {"car", "motorcycle", "cycles"},
-                job = perm ~= "" and perm or (isWork and g.name or nil),
-                permission = perm ~= "" and perm or (isWork and g.name or nil),
-                isWork = isWork,
-                workName = isWork and g.name or nil,
-                payment = g.payment or false,
-                blip = blipConf,
-                interaction = "keypressed",
-                impound = false
-            }
         end
-        TriggerClientEvent('vanguard_garage:client:syncConfig', target or -1, GarageZone)
+        if #spawns == 0 then
+            spawns = { vec4(g.spawn_x, g.spawn_y, g.spawn_z, g.spawn_h) }
+        end
+
+        local isWork = (Config.Works and Config.Works[g.name] ~= nil) or false
+        local perm = g.permission or ""
+        if perm == "nil" or perm == "false" then perm = "" end
+
+        local isPublic = (perm == "") and not isWork
+        local blipConf = nil
+        if isPublic then
+            local bLabel = "Garagem Pública"
+            local sprite = 357
+            if g.name == "Concessionária" then sprite = 225
+            elseif g.name == "Aeronaves" then sprite = 359
+            elseif g.name and g.name ~= "Garage" and g.name ~= "" then bLabel = "Garagem " .. g.name end
+            blipConf = { type = sprite, color = 3, label = bLabel }
+        end
+
+        GarageZone[gid] = {
+            garage_id = gid,
+            name = g.name or "Garage",
+            label = g.name or "Garage",
+            marker = markerCoord,
+            marker_x = g.marker_x,
+            marker_y = g.marker_y,
+            marker_z = g.marker_z,
+            spawnPoint = spawns,
+            spawnpoint = spawns,
+            type = {"car", "motorcycle", "cycles"},
+            job = perm ~= "" and perm or (isWork and g.name or nil),
+            permission = perm ~= "" and perm or (isWork and g.name or nil),
+            isWork = isWork,
+            workName = isWork and g.name or nil,
+            payment = (g.payment == true or g.payment == "true" or g.payment == 1) or false,
+            blip = blipConf,
+            interaction = "keypressed",
+            impound = false
+        }
     end
+
+    -- Remove garagens deletadas do banco que estavam no cache
+    for oldGid in pairs(CustomGarageIds) do
+        if not newCustomIds[oldGid] then
+            GarageZone[oldGid] = nil
+        end
+    end
+    CustomGarageIds = newCustomIds
+
+    TriggerClientEvent('vanguard_garage:client:syncConfig', target or -1, GarageZone)
     return true
 end
 
@@ -853,11 +1080,14 @@ exports("GetGarageTypes", function()
         for catName, models in pairs(Config.Works) do
             local vehList = {}
             for _, m in ipairs(models) do
+                local ok, name = pcall(fw.gvn, m)
+                local nameLabel = (ok and name and name ~= "" and name ~= "NULL") and name or string.upper(tostring(m))
                 vehList[#vehList + 1] = {
                     model = m,
-                    label = fw.gvn(m) or string.upper(m)
+                    label = nameLabel
                 }
             end
+            table.sort(vehList, function(a, b) return tostring(a.label or a.model):lower() < tostring(b.label or b.model):lower() end)
             types[#types + 1] = {
                 value = catName,
                 label = catName,
@@ -871,12 +1101,76 @@ exports("GetGarageTypes", function()
 end)
 
 exports("ApplyCustomGarageMutation", function(action, row)
-    if action == "remove" and row then
-        local gid = tostring(row.garage_id or row.id)
+    action = tostring(action or "")
+    row = type(row) == "table" and row or {}
+    local gid = tostring(row.garage_id or row.id or "")
+
+    if action == "remove" and gid ~= "" then
         if GarageZone[gid] then
             GarageZone[gid] = nil
         end
+        CustomGarageIds[gid] = nil
+        TriggerClientEvent('vanguard_garage:client:syncConfig', -1, GarageZone)
+        return true
     end
+
+    if action == "upsert" and gid ~= "" then
+        local markerCoord = vec3(tonumber(row.marker_x or 0.0), tonumber(row.marker_y or 0.0), tonumber(row.marker_z or 0.0))
+        local spawns = {}
+        if row.spawns and row.spawns ~= "" and row.spawns ~= "null" then
+            local okDec, decoded = pcall(json.decode, row.spawns)
+            if okDec and type(decoded) == "table" and #decoded > 0 then
+                for _, sp in ipairs(decoded) do
+                    if sp and sp.x and sp.y and sp.z then
+                        spawns[#spawns + 1] = vec4(tonumber(sp.x), tonumber(sp.y), tonumber(sp.z), tonumber(sp.heading or sp.h or 0.0))
+                    end
+                end
+            end
+        end
+        if #spawns == 0 and row.spawn_x and row.spawn_y and row.spawn_z then
+            spawns = { vec4(tonumber(row.spawn_x), tonumber(row.spawn_y), tonumber(row.spawn_z), tonumber(row.spawn_h or 0.0)) }
+        end
+
+        local isWork = (Config.Works and Config.Works[row.name] ~= nil) or false
+        local perm = row.permission or ""
+        if perm == "nil" or perm == "false" then perm = "" end
+
+        local isPublic = (perm == "") and not isWork
+        local blipConf = nil
+        if isPublic then
+            local bLabel = "Garagem Pública"
+            local sprite = 357
+            if row.name == "Concessionária" then sprite = 225
+            elseif row.name == "Aeronaves" then sprite = 359
+            elseif row.name and row.name ~= "Garage" and row.name ~= "" then bLabel = "Garagem " .. row.name end
+            blipConf = { type = sprite, color = 3, label = bLabel }
+        end
+
+        GarageZone[gid] = {
+            garage_id = gid,
+            name = row.name or "Garage",
+            label = row.name or "Garage",
+            marker = markerCoord,
+            marker_x = tonumber(row.marker_x or 0.0),
+            marker_y = tonumber(row.marker_y or 0.0),
+            marker_z = tonumber(row.marker_z or 0.0),
+            spawnPoint = spawns,
+            spawnpoint = spawns,
+            type = {"car", "motorcycle", "cycles"},
+            job = perm ~= "" and perm or (isWork and row.name or nil),
+            permission = perm ~= "" and perm or (isWork and row.name or nil),
+            isWork = isWork,
+            workName = isWork and row.name or nil,
+            payment = (row.payment == true or row.payment == "true" or row.payment == 1) or false,
+            blip = blipConf,
+            interaction = "keypressed",
+            impound = false
+        }
+        CustomGarageIds[gid] = true
+        TriggerClientEvent('vanguard_garage:client:syncConfig', -1, GarageZone)
+        return true
+    end
+
     return refreshGaragesFromDB(-1)
 end)
 

@@ -7,6 +7,8 @@ AddEventHandler('onResourceStart', function(resource)
     end
 end)
 
+
+
 local function destroyPreview(keepCam)
     if VehicleShow and DoesEntityExist(VehicleShow) then
         if not keepCam then
@@ -72,7 +74,7 @@ local function spawnvehicle(data)
             plate = data.plate,
         }
         
-        local isWork = data.isWork or (data.plate == "SERVIÇO") or (data.plate and data.plate:sub(1,3) == "SRV")
+        local isWork = data.isWork or (data.plate == "SERVIÇO") or (data.plate and (data.plate:sub(1,3) == "SRV" or data.plate:sub(1,2) == "PM" or data.plate:sub(1,2) == "PC" or data.plate:sub(1,2) == "PF" or data.plate:sub(1,3) == "PRF" or data.plate:sub(1,2) == "BM" or data.plate:sub(1,3) == "MEC" or data.plate:sub(1,3) == "GCM"))
         if isWork then
             local pPrefix = "SRV"
             local gData = GarageZone[data.garage]
@@ -87,8 +89,12 @@ local function spawnvehicle(data)
                     pPrefix = "PRF"
                 elseif gData.name == "Paramedico" or gData.name == "HP" then
                     pPrefix = "SAMU"
-                elseif gData.name == "BM" then
-                    pPrefix = "BOMBEIRO"
+                elseif gData.name == "BM" or gData.name == "BOMBEIRO" then
+                    pPrefix = "BM"
+                elseif gData.name == "GCM" then
+                    pPrefix = "GCM"
+                elseif gData.name == "ROTE" then
+                    pPrefix = "ROTE"
                 end
             end
             vehData.plate = ("%s%04d"):format(pPrefix, math.random(1000, 9999)):sub(1, 8)
@@ -103,10 +109,17 @@ local function spawnvehicle(data)
         end
 
         local vehEntity
+        local spawnedServerPlate = nil
         if not vehData.mods then vehData.mods = {} end
+        if type(vehData.mods) == 'string' then
+            vehData.mods = json.decode(vehData.mods) or {}
+        end
         vehData.mods.plate = vehData.plate or data.plate
 
-        utils.createPlyVeh(vehData.model, data.coords, function(veh) vehEntity = veh end, true, vehData.mods, {
+        utils.createPlyVeh(vehData.model, data.coords, function(veh, srvPlate)
+            vehEntity = veh
+            spawnedServerPlate = srvPlate
+        end, true, vehData.mods, {
             plate = vehData.plate or data.plate,
             garage = data.garage,
             isWork = isWork
@@ -122,10 +135,14 @@ local function spawnvehicle(data)
             error('Falha ao criar entidade do veículo ou spawn cancelado.')
         end
 
-        SetVehicleOnGroundProperly(vehEntity)
+        local finalPlate = spawnedServerPlate or vehData.plate or data.plate
+        if finalPlate then
+            SetVehicleNumberPlateText(vehEntity, finalPlate)
+        end
 
-        if vehData.plate then
-            SetVehicleNumberPlateText(vehEntity, vehData.plate)
+        -- Aplica propriedades (idêntico ao script garages)
+        if vehData.mods and type(vehData.mods) == 'table' and next(vehData.mods) then
+            pcall(function() lib.setVehicleProperties(vehEntity, vehData.mods) end)
         end
 
         local engineHealth = vehData.engine or 1000
@@ -159,25 +176,11 @@ local function spawnvehicle(data)
             Entity(vehEntity).state:set('isWorkVehicle', true)
         end
 
-        local plate = vehData.plate or data.plate or GetVehicleNumberPlateText(vehEntity)
+        local plate = spawnedServerPlate or vehData.plate or data.plate or GetVehicleNumberPlateText(vehEntity)
         local cleanPlate = utils.string.trim(plate)
 
-        local inventoryFull = false
-        if isWork then
-            if GetResourceState('mri_Qcarkeys') == 'started' then
-                TriggerEvent('mm_carkeys:client:addtempkeys', cleanPlate)
-                TriggerServerEvent('mm_carkeys:server:acquiretempvehiclekeys', cleanPlate)
-            end
-        else
-            if GetResourceState('mri_Qcarkeys') == 'started' and Config.GiveKeys.onspawn then
-                if not exports.mri_Qcarkeys:HavePermanentKey(cleanPlate) then
-                    local keySuccess = exports.mri_Qcarkeys:GiveKeyItem(cleanPlate)
-                    if keySuccess == false then
-                        inventoryFull = true
-                        utils.notify("Seu inventário está cheio para receber a chave física. O veículo foi deixado destrancado.", "warning", 8000)
-                    end
-                end
-            end
+        if GetResourceState('mri_Qcarkeys') == 'started' and cleanPlate and cleanPlate ~= "" then
+            TriggerEvent('mm_carkeys:client:addtempkeys', cleanPlate)
         end
 
         if Config.SpawnInVehicle then
@@ -190,7 +193,7 @@ local function spawnvehicle(data)
                 Entity(vehEntity).state:set('keysIn', true, true)
             end
         else
-            if Config.SpawnLocked and not inventoryFull then
+            if Config.SpawnLocked then
                 SetVehicleDoorsLocked(vehEntity, 2)
                 local netId = NetworkGetNetworkIdFromEntity(vehEntity)
                 if netId and netId ~= 0 then
@@ -207,17 +210,16 @@ local function spawnvehicle(data)
             end
         end
 
-        -- Criar a câmera cinematográfica (ela mesma cuidará do primeiro FadeIn)
-        utils.createPreviewCam(vehEntity, true)
-
-        -- Barra de progresso customizada Vanguard (7 segundos total)
-        utils.vanguardProgress('Retirando veículo...', 7000)
-
-        -- Finaliza a câmera e volta para o jogador
-        utils.destroyPreviewCam(vehEntity, Config.SpawnInVehicle)
-        if IsScreenFadedOut() or IsScreenFadingOut() then
-            DoScreenFadeIn(500)
+        -- Finaliza qualquer câmera ou fade imediatamente para spawn instantâneo
+        if utils.previewCam and DoesCamExist(utils.previewCam) then
+            DestroyCam(utils.previewCam, false)
+            RenderScriptCams(false, false, 0, false, false)
+            utils.previewCam = nil
         end
+        if IsScreenFadedOut() or IsScreenFadingOut() then
+            DoScreenFadeIn(250)
+        end
+        utils.notify('Veículo retirado com sucesso!', 'success', 5000)
     end)
 
     isSpawning = false
@@ -507,11 +509,6 @@ local function listAddedVehicles(data, menuData)
                 
                 VehicleShow = utils.createPreviewVeh(vehModel, defaultcoords)
                 FreezeEntityPosition(VehicleShow, true)
-                SetVehicleDoorsLocked(VehicleShow, 2)
-                utils.createPreviewCam(VehicleShow)
-                
-                -- Barra de progresso customizada Vanguard (7 segundos total)
-                utils.vanguardProgress('Retirando veículo...', 7000)
                 actionMenu({
                     prop = nil,
                     engine = 1000,
@@ -579,7 +576,7 @@ local function openMenu(data)
             formattedVehicles[#formattedVehicles + 1] = {
                 name = vehName or string.upper(vehModel),
                 model = vehModel,
-                plate = "SERVIÇO",
+                plate = (vd.plate and vd.plate ~= "" and vd.plate ~= "SERVIÇO") and vd.plate or string.format("SRV-%03d", i),
                 fuel = 100,
                 engine = 1000,
                 body = 1000,
@@ -638,13 +635,20 @@ local function openMenu(data)
 
                 -- Verifica se este veículo está por perto (raio de 60 metros) ou se o player está dentro dele
                 local isNearby = false
-                if cache.vehicle and utils.getPlate(cache.vehicle) == plate then
-                    isNearby = true
-                else
+                local cleanPlateTarget = (tostring(plate):gsub("%W", "")):upper()
+                if cache.vehicle then
+                    local curP = utils.getPlate(cache.vehicle)
+                    local cleanCurP = curP and (tostring(curP):gsub("%W", "")):upper()
+                    if cleanCurP == cleanPlateTarget then
+                        isNearby = true
+                    end
+                end
+                if not isNearby then
                     for _, cVeh in ipairs(allNearby) do
                         if DoesEntityExist(cVeh) and #(GetEntityCoords(cVeh) - curPedCoords) <= 60.0 then
                             local p = utils.getPlate(cVeh)
-                            if p and p == plate then
+                            local cleanP = p and (tostring(p):gsub("%W", "")):upper()
+                            if cleanP and cleanP == cleanPlateTarget then
                                 isNearby = true
                                 break
                             end
@@ -693,93 +697,139 @@ RegisterNUICallback('closeUI', function(data, cb)
     cb('ok')
 end)
 
-RegisterNUICallback('storeSelectedVehicle', function(data, cb)
+RegisterNUICallback('trackVehicle', function(data, cb)
     SetNuiFocus(false, false)
     if cb then cb('ok') end
+    if not data or not data.plate then return end
 
-    local targetPlate = data.plate and utils.string.trim(data.plate)
-    local garage = data.garage
-    local vehToStore = nil
+    local tracked = vehFunc.tvbp(data.plate, data.garage, true)
+    if tracked then
+        utils.notify("Localização marcada no seu GPS.", "success", 7000)
+    else
+        utils.notify("O veículo não foi detectado no mapa (pode estar guardado ou destruído).", "error", 7000)
+    end
+end)
 
-    -- 1. Se o player estiver dentro do veículo e a placa bater
-    if cache.vehicle then
-        local curPlate = utils.getPlate(cache.vehicle)
-        if not targetPlate or curPlate == targetPlate then
-            vehToStore = cache.vehicle
-        end
+
+--- Encontra o veículo mais apropriado para guardar (sem falsos negativos)
+local function findVehicleToStore(targetPlate, garageId)
+    -- 1. Se o jogador estiver dentro de qualquer veículo, é este que ele quer guardar!
+    if cache.vehicle and DoesEntityExist(cache.vehicle) then
+        return cache.vehicle
     end
 
-    -- 2. Se não estiver no veículo, procura nas proximidades (raio de 60 metros)
-    if not vehToStore then
-        local pCoords = GetEntityCoords(cache.ped)
-        local vehicles = GetGamePool('CVehicle')
-        local closestDist = 60.0
+    local pCoords = GetEntityCoords(cache.ped)
+    local vehicles = GetGamePool('CVehicle')
 
+    -- 2. Tenta encontrar por placa correspondente (removendo caracteres especiais e espaços)
+    local cleanTarget = targetPlate and (tostring(targetPlate):gsub("%W", "")):upper()
+    if cleanTarget and cleanTarget ~= "" and not cleanTarget:find("SERVI") and not cleanTarget:find("-") then
         for _, v in ipairs(vehicles) do
             if DoesEntityExist(v) then
                 local dist = #(GetEntityCoords(v) - pCoords)
-                if dist <= closestDist then
+                if dist <= 55.0 then
                     local p = utils.getPlate(v)
-                    if p and targetPlate and p == targetPlate then
-                        vehToStore = v
-                        break
+                    local cleanP = p and (tostring(p):gsub("%W", "")):upper()
+                    if cleanP and cleanP == cleanTarget then
+                        return v
                     end
                 end
             end
         end
     end
 
-    -- 3. Fallback: veículo mais próximo até 25 metros
-    if not vehToStore and not targetPlate then
-        local closestVeh = lib.getClosestVehicle(GetEntityCoords(cache.ped), 25.0, true)
-        if closestVeh and DoesEntityExist(closestVeh) then
-            vehToStore = closestVeh
+    -- 3. Verifica o último veículo que o jogador dirigiu (se estiver até 45 metros)
+    local lastVeh = (cache.vehicle and cache.vehicle ~= 0 and cache.vehicle) or (GetLastDrivenVehicle and GetLastDrivenVehicle())
+    if lastVeh and DoesEntityExist(lastVeh) then
+        local dist = #(GetEntityCoords(lastVeh) - pCoords)
+        if dist <= 45.0 then
+            return lastVeh
         end
     end
 
+    -- 4. Se for garagem de serviço, prioriza viaturas de serviço próximas
+    local gData = garageId and GarageZone[tostring(garageId)]
+    local isWorkGarage = gData and (gData.isWork or (Config.Works and Config.Works[gData.name]))
+    if isWorkGarage then
+        local bestVeh = nil
+        local bestDist = 45.0
+        for _, v in ipairs(vehicles) do
+            if DoesEntityExist(v) then
+                local dist = #(GetEntityCoords(v) - pCoords)
+                if dist <= bestDist then
+                    local st = Entity(v).state
+                    local p = utils.getPlate(v) or ""
+                    local cleanP = (tostring(p):gsub("%W", "")):upper()
+                    local isViat = st.isWorkVehicle or cleanP:sub(1,2) == "PM" or cleanP:sub(1,2) == "PC" or cleanP:sub(1,2) == "PF" or cleanP:sub(1,3) == "PRF" or cleanP:sub(1,4) == "SAMU" or cleanP:sub(1,2) == "BM" or cleanP:sub(1,3) == "GCM" or cleanP:sub(1,3) == "SRV" or cleanP:sub(1,4) == "ROTE" or cleanP:sub(1,2) == "CB"
+                    if isViat then
+                        bestVeh = v
+                        bestDist = dist
+                    end
+                end
+            end
+        end
+        if bestVeh then
+            return bestVeh
+        end
+    end
+
+    -- 5. Fallback geral: pega o veículo mais próximo do jogador em até 40 metros
+    local closestVeh = lib.getClosestVehicle(pCoords, 40.0, true)
+    if closestVeh and DoesEntityExist(closestVeh) then
+        return closestVeh
+    end
+
+    return nil
+end
+
+--- Executa a rotina completa de guardar preservando 100% de danos, motor, lataria, deformação e peças
+local function executeStoreVehicle(vehToStore, garageId, allowedTypes)
     if not vehToStore or not DoesEntityExist(vehToStore) then
-        return utils.notify(locale('notify.error.no_vehicle_near') or "O veículo selecionado não está próximo da garagem para ser guardado.", "error", 6000)
+        return utils.notify(locale('notify.error.no_vehicle_near') or "Nenhum veículo próximo encontrado para guardar na garagem.", "error", 6000)
     end
 
-    local function canStoreOccupantsAndSpeed(veh)
-        local speed = GetEntitySpeed(veh)
-        if speed > 0.8 then
-            utils.notify("O veículo precisa estar parado para ser guardado.", "error", 6000)
-            return false
+    -- 1. Validação de Categoria (se restrita na garagem)
+    if allowedTypes and type(allowedTypes) == "table" and #allowedTypes > 0 and not lib.table.contains(allowedTypes, "all") then
+        local vehicleClass = GetVehicleClass(vehToStore)
+        local vehicleType = utils.getCategoryByClass(vehicleClass)
+        if not lib.table.contains(allowedTypes, vehicleType) then
+            return utils.notify(locale('notify.info.invalid_veh_classs', garageId or "") or "Categoria de veículo incompatível com esta garagem.", "error", 6000)
         end
+    end
 
-        local maxSeats = GetVehicleMaxNumberOfPassengers(veh)
-        for seat = -1, maxSeats - 1 do
-            local occ = GetPedInVehicleSeat(veh, seat)
-            if occ ~= 0 and DoesEntityExist(occ) and IsPedAPlayer(occ) then
-                if IsEntityDead(occ) then
-                    utils.notify("Não é possível guardar o veículo com passageiros desacordados.", "error", 6000)
-                    return false
-                end
-                local occState = Entity(occ).state
-                if occState and (occState.isHandcuffed or occState.isDead or occState.inLastStand) then
-                    utils.notify("Não é possível guardar o veículo com passageiros algemados ou desacordados.", "error", 6000)
-                    return false
-                end
+    -- 2. Tratamento suave de velocidade (para suavemente caso esteja abaixo de 3.0 m/s ~ 11 km/h)
+    local speed = GetEntitySpeed(vehToStore)
+    if speed > 3.0 then
+        return utils.notify("O veículo precisa estar parado para ser guardado.", "error", 6000)
+    else
+        SetVehicleForwardSpeed(vehToStore, 0.0)
+        BringVehicleToHalt(vehToStore, 1.0, 1, false)
+    end
+
+    -- 3. Validação de passageiros algemados ou desacordados
+    local maxSeats = GetVehicleMaxNumberOfPassengers(vehToStore)
+    for seat = -1, maxSeats - 1 do
+        local occ = GetPedInVehicleSeat(vehToStore, seat)
+        if occ ~= 0 and DoesEntityExist(occ) and IsPedAPlayer(occ) then
+            if IsEntityDead(occ) then
+                return utils.notify("Não é possível guardar o veículo com passageiros desacordados.", "error", 6000)
+            end
+            local occState = Entity(occ).state
+            if occState and (occState.isHandcuffed or occState.isDead or occState.inLastStand) then
+                return utils.notify("Não é possível guardar o veículo com passageiros algemados ou desacordados.", "error", 6000)
             end
         end
+    end
 
-        for seat = -1, maxSeats - 1 do
-            local occ = GetPedInVehicleSeat(veh, seat)
-            if occ ~= 0 and DoesEntityExist(occ) then
-                TaskLeaveAnyVehicle(occ, true, 0)
-            end
+    -- 4. Ejetar ocupantes de forma segura antes de deletar
+    for seat = -1, maxSeats - 1 do
+        local occ = GetPedInVehicleSeat(vehToStore, seat)
+        if occ ~= 0 and DoesEntityExist(occ) then
+            TaskLeaveAnyVehicle(occ, true, 0)
         end
-        Wait(600)
-        return true
     end
 
-    if not canStoreOccupantsAndSpeed(vehToStore) then
-        return
-    end
-
-    utils.vanguardProgress('Estacionando veículo...', 2000)
-
+    -- 5. Extração completa e fidedigna de lataria, motor, combustível, danos estéticos, portas, vidros e pneus
     local netId = NetworkGetNetworkIdFromEntity(vehToStore)
     local deformation = Deformation.get(vehToStore)
     local props = lib.getVehicleProperties(vehToStore) or {}
@@ -792,12 +842,27 @@ RegisterNUICallback('storeSelectedVehicle', function(data, cb)
     props.engineHealth = healthData.engine
     props.fuelLevel = healthData.fuel
 
-    local success, message = lib.callback.await('vanguard_garage:server:storeVehicle', false, netId, garage, deformation, props, healthData)
+    -- 6. Envio para callback autoritativo no servidor
+    local success, message = lib.callback.await('vanguard_garage:server:storeVehicle', false, netId, garageId, deformation, props, healthData)
     if success then
-        utils.notify(message or "Veículo guardado na garagem com sucesso!", "success", 6000)
+        utils.notify(message or locale('notify.success.store_veh') or "Veículo guardado na garagem com sucesso!", "success", 6000)
     else
         utils.notify(message or "Erro ao guardar veículo.", "error", 6000)
     end
+    return success
+end
+
+RegisterNUICallback('storeSelectedVehicle', function(data, cb)
+    SetNuiFocus(false, false)
+    if cb then cb('ok') end
+
+    local gId = data and data.garage
+    local targetPlate = data and data.plate
+    local gData = gId and GarageZone[tostring(gId)]
+    local allowedTypes = gData and gData.type
+
+    local vehToStore = findVehicleToStore(targetPlate, gId)
+    executeStoreVehicle(vehToStore, gId, allowedTypes)
 end)
 
 RegisterNUICallback('takeOutVehicle', function(data, cb)
@@ -893,7 +958,7 @@ RegisterNUICallback('takeOutVehicle', function(data, cb)
 
     SetNuiFocus(false, false)
 
-    local isWork = data.isWork or (garageData and garageData.isWork) or (data.plate == "SERVIÇO")
+    local isWork = data.isWork or (garageData and garageData.isWork) or (data.plate == "SERVIÇO") or (data.plate and (data.plate:sub(1,3) == "SRV" or data.plate:sub(1,2) == "PM" or data.plate:sub(1,2) == "PC" or data.plate:sub(1,2) == "PF" or data.plate:sub(1,3) == "PRF" or data.plate:sub(1,2) == "BM" or data.plate:sub(1,3) == "MEC" or data.plate:sub(1,3) == "GCM"))
 
     -- ETAPA 4: Spawn do Veículo
     if garageData and Config.Showrooms.Config.Enable and not isImpound and not isWork then
@@ -917,71 +982,14 @@ end)
 --- Store Vehicle To Garage
 ---@param data GarageVehicleData
 local function storeVeh(data)
-    local myCoords = GetEntityCoords(cache.ped)
-    local vehicle = cache.vehicle or lib.getClosestVehicle(myCoords, 15.0, true)
-    
-    if not vehicle or not DoesEntityExist(vehicle) then
-        return utils.notify(locale('notify.error.not_veh_exist'), 'error')
-    end
-
-    local vehicleClass = GetVehicleClass(vehicle)
-    local vehicleType = utils.getCategoryByClass(vehicleClass)
-    
-    if not lib.table.contains(data.type, vehicleType) then
-        return utils.notify(locale('notify.info.invalid_veh_classs', data.garage))
-    end
-
-    if data.impound then
+    if data and data.impound then
         return utils.notify("Você não pode guardar veículos no pátio.", 'error')
     end
 
-    local speed = GetEntitySpeed(vehicle)
-    if speed > 0.8 then
-        return utils.notify("O veículo precisa estar parado para ser guardado.", "error", 6000)
-    end
-
-    local maxSeats = GetVehicleMaxNumberOfPassengers(vehicle)
-    for seat = -1, maxSeats - 1 do
-        local occ = GetPedInVehicleSeat(vehicle, seat)
-        if occ ~= 0 and DoesEntityExist(occ) and IsPedAPlayer(occ) then
-            if IsEntityDead(occ) then
-                return utils.notify("Não é possível guardar o veículo com passageiros desacordados.", "error", 6000)
-            end
-            local occState = Entity(occ).state
-            if occState and (occState.isHandcuffed or occState.isDead or occState.inLastStand) then
-                return utils.notify("Não é possível guardar o veículo com passageiros algemados ou desacordados.", "error", 6000)
-            end
-        end
-    end
-
-    for seat = -1, maxSeats - 1 do
-        local occ = GetPedInVehicleSeat(vehicle, seat)
-        if occ ~= 0 and DoesEntityExist(occ) then
-            TaskLeaveAnyVehicle(occ, true, 0)
-        end
-    end
-    Wait(600)
-
-    utils.vanguardProgress('Estacionando veículo...', 2000)
-
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
-    local deformation = Deformation.get(vehicle)
-    local props = lib.getVehicleProperties(vehicle) or {}
-    local healthData = {
-        body = math.floor(GetVehicleBodyHealth(vehicle) + 0.5),
-        engine = math.floor(GetVehicleEngineHealth(vehicle) + 0.5),
-        fuel = math.floor(utils.getFuel(vehicle) or 100)
-    }
-    props.bodyHealth = healthData.body
-    props.engineHealth = healthData.engine
-    props.fuelLevel = healthData.fuel
-
-    local success, message = lib.callback.await('vanguard_garage:server:storeVehicle', false, netId, data.garage, deformation, props, healthData)
-    if success then
-        utils.notify(message or locale('notify.success.store_veh'), 'success')
-    else
-        utils.notify(message or "Erro ao guardar veículo.", 'error')
-    end
+    local gId = data and (data.garage or data.garage_id or data.id)
+    local allowedTypes = data and data.type
+    local vehToStore = findVehicleToStore(nil, gId)
+    executeStoreVehicle(vehToStore, gId, allowedTypes)
 end
 
 -- Monitoramento Otimizado de Veículos com StateBags e Sleep Dinâmico

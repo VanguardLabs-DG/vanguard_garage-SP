@@ -62,13 +62,55 @@ end
 --- Get Vehicle Name
 ---@param model string
 function fw.gvn(model)
-    local vd = QBCore and QBCore.Shared and QBCore.Shared.Vehicles and QBCore.Shared.Vehicles[model]
-    local makename = GetMakeNameFromVehicleModel(model)
-    local displayname = GetDisplayNameFromVehicleModel(model)
+    if not model or model == "" then return "" end
+    local mStr = tostring(model):lower()
 
-    local vm = (vd and vd.brand) or makename
-    local vn = (vd and vd.name) or displayname
-    return ("%s %s"):format(vm, vn)
+    -- 1. Consulta qbx_core (moderno / compartilhado)
+    local qbxVeh = nil
+    if exports and exports.qbx_core then
+        local ok, data = pcall(function()
+            return exports.qbx_core:GetVehiclesByName(mStr)
+        end)
+        if ok and data and type(data) == "table" then
+            qbxVeh = data
+        end
+    end
+
+    -- 2. Consulta QBCore.Shared.Vehicles (fallback legado)
+    local qbVeh = QBCore and QBCore.Shared and QBCore.Shared.Vehicles and (QBCore.Shared.Vehicles[model] or QBCore.Shared.Vehicles[mStr])
+    local vd = qbxVeh or qbVeh
+
+    local vm = (vd and (vd.brand or vd.make)) or ""
+    local vn = (vd and vd.name) or ""
+
+    -- 3. Se for CLIENT-SIDE, tenta as natives da engine do GTA V como fallback
+    if not IsDuplicityVersion() then
+        local mHash = type(model) == "number" and model or joaat(mStr)
+        if vm == "" and GetMakeNameFromVehicleModel then
+            local okM, makeKey = pcall(GetMakeNameFromVehicleModel, mHash)
+            if okM and makeKey and makeKey ~= "" and makeKey ~= "NULL" then
+                local makeLabel = GetLabelText and GetLabelText(makeKey)
+                vm = (makeLabel and makeLabel ~= "NULL") and makeLabel or makeKey
+            end
+        end
+        if vn == "" and GetDisplayNameFromVehicleModel then
+            local okD, dispKey = pcall(GetDisplayNameFromVehicleModel, mHash)
+            if okD and dispKey and dispKey ~= "" and dispKey ~= "NULL" then
+                local dispLabel = GetLabelText and GetLabelText(dispKey)
+                vn = (dispLabel and dispLabel ~= "NULL") and dispLabel or dispKey
+            end
+        end
+    end
+
+    if vm ~= "" and vn ~= "" then
+        return ("%s %s"):format(vm, vn)
+    elseif vn ~= "" then
+        return vn
+    elseif vm ~= "" then
+        return vm
+    end
+
+    return string.upper(model)
 end
 
 RegisterNetEvent('QBCore:Client:OnPlayerLoaded', function()
@@ -247,6 +289,7 @@ if isServer then
     ---@param garage string
     ---@return boolean
     function fw.uvs(plate, state, garage, engine, body)
+        local clean = plate and string.gsub(plate, "%s+", ""):upper() or ""
         local query = "UPDATE player_vehicles SET state = ?, garage = ?"
         local params = {state, garage}
         
@@ -261,9 +304,11 @@ if isServer then
             params[#params+1] = os.time()
         end
         
-        query = query .. " WHERE plate = ? OR fakeplate = ?"
+        query = query .. " WHERE plate = ? OR fakeplate = ? OR TRIM(plate) = ? OR REPLACE(plate, ' ', '') = ?"
         params[#params+1] = plate
         params[#params+1] = plate
+        params[#params+1] = plate
+        params[#params+1] = clean
         
         local Update = MySQL.update.await(query, params)
         return Update > 0
@@ -373,8 +418,8 @@ if isServer then
 
     --- Get Player Vehicle By Plate
     ---@param plate string
-    ---@return table
     function fw.gpvbp(plate)
+        local clean = plate and string.gsub(plate, "%s+", ""):upper() or ""
         local results = MySQL.single.await([[
             SELECT
                 pv.citizenid,
@@ -392,8 +437,9 @@ if isServer then
                 pv.balance,
                 pv.deformation,
                 p.charinfo
-            FROM player_vehicles pv LEFT JOIN players p ON pv.citizenid = p.citizenid WHERE pv.plate = ? OR pv.fakeplate = ?
-        ]], {plate, plate})
+            FROM player_vehicles pv LEFT JOIN players p ON pv.citizenid = p.citizenid 
+            WHERE pv.plate = ? OR pv.fakeplate = ? OR TRIM(pv.plate) = ? OR REPLACE(pv.plate, ' ', '') = ? LIMIT 1
+        ]], {plate, plate, plate, clean})
 
         local vehicles = {}
         if results then

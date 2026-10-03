@@ -311,29 +311,19 @@ function utils.setFuel(vehicle, fuel)
     if fuel > 100.0 then fuel = 100.0 end
     if fuel < 0.0 then fuel = 0.0 end
 
-    local fuelScript = Config.FuelScript
-    local success = false
+    pcall(function()
+        SetVehicleFuelLevel(vehicle, fuel)
+        Entity(vehicle).state:set('fuel', fuel, true)
+    end)
 
-    if fuelScript == "ox_fuel" then
-        pcall(function()
-            Entity(vehicle).state.fuel = fuel
-            success = true
-        end)
-    elseif fuelScript and GetResourceState(fuelScript) == "started" then
+    local fuelScript = Config.FuelScript
+    if fuelScript and GetResourceState(fuelScript) == "started" then
         pcall(function()
             if exports[fuelScript] and exports[fuelScript].SetFuel then
                 exports[fuelScript]:SetFuel(vehicle, fuel)
-                success = true
             elseif exports[fuelScript] and exports[fuelScript].setFuel then
                 exports[fuelScript]:setFuel(vehicle, fuel)
-                success = true
             end
-        end)
-    end
-
-    if not success then
-        pcall(function()
-            SetVehicleFuelLevel(vehicle, fuel)
         end)
     end
 end
@@ -370,12 +360,12 @@ end
 function utils.createPlyVeh ( model, coords, cb, network, props, extra )
     network = network == nil and false or network
     lib.requestModel(model, 150000)
-    local netid = lib.callback.await("vanguard_garage:server:spawnVehicle", false, model, coords, props, extra)
+    local netid, vehSrv, srvPlate = lib.callback.await("vanguard_garage:server:spawnVehicle", false, model, coords, props, extra)
     if not netid then 
         if cb then cb(nil) end
         return 
     end
-    local timeout = 100
+    local timeout = 150
     while not NetworkDoesEntityExistWithNetworkId(netid) and timeout > 0 do
         Wait(20)
         timeout = timeout - 1
@@ -385,11 +375,24 @@ function utils.createPlyVeh ( model, coords, cb, network, props, extra )
         if cb then cb(nil) else return nil end
         return
     end
+
+    -- Aguarda o streaming do modelo estar pronto no cliente (idêntico ao script garages)
+    timeout = 50
+    while not HasModelLoaded(GetEntityModel(veh)) and timeout > 0 do
+        Wait(20)
+        timeout = timeout - 1
+    end
+
+    -- Garante a aplicação no cliente (idêntico ao script garages)
+    if props and type(props) == "table" and next(props) then
+        pcall(function() lib.setVehicleProperties(veh, props) end)
+    end
+
     SetVehicleHasBeenOwnedByPlayer(veh, true)
     SetVehicleNeedsToBeHotwired(veh, false)
     SetVehRadioStation(veh, 'OFF')
     SetModelAsNoLongerNeeded(model)
-    if cb then cb(veh) else return veh end
+    if cb then cb(veh, srvPlate) else return veh, srvPlate end
 end
 
 function utils.createPreviewVeh ( model, coords, cb, network )
